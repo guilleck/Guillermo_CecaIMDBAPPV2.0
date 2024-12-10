@@ -1,8 +1,10 @@
 package es.riberadeltajo.ceca_guillermoimdbapp;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
 import android.view.Menu;
+import android.widget.TextView;
 
 import com.google.android.material.snackbar.Snackbar;
 import com.google.android.material.navigation.NavigationView;
@@ -20,7 +22,8 @@ public class MainActivity extends AppCompatActivity {
 
     private AppBarConfiguration mAppBarConfiguration;
     private ActivityMainBinding binding;
-
+    private String nombre,email;
+    private TextView textViewNombre, textViewEmail;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -28,6 +31,15 @@ public class MainActivity extends AppCompatActivity {
         binding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
+        textViewNombre = findViewById(R.id.textViewNombre);
+        textViewEmail = findViewById(R.id.textViewEmail);
+
+        Intent i = getIntent();
+        nombre = i.getStringExtra("nombre");
+        email = i.getStringExtra("email");
+
+        textViewNombre.setText(nombre);
+        textViewEmail.setText(email);
         setSupportActionBar(binding.appBarMain.toolbar);
         binding.appBarMain.fab.setOnClickListener(new View.OnClickListener() {
             @Override
