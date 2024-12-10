@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "913112871034",
+    "project_id": "ceca-guillermoimdbapp",
+    "storage_bucket": "ceca-guillermoimdbapp.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:913112871034:android:732a93935a8ca881d98bc3",
+        "android_client_info": {
+          "package_name": "es.riberadeltajo.ceca_guillermoimdbapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAc7TtReSNOJ2P7klMsrjSzDWZxcSO83Y4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
