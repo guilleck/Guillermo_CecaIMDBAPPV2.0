@@ -66,6 +66,10 @@ public class LoginActivity extends AppCompatActivity {
                                 auth = FirebaseAuth.getInstance();
                                 nombre = auth.getCurrentUser().getDisplayName();
                                 email = auth.getCurrentUser().getEmail();
+                                Intent intent = new Intent(LoginActivity.this,MainActivity.class);
+                                intent.putExtra("nombre",nombre);
+                                intent.putExtra("email",email);
+                                startActivity(intent);
 
                                 Toast.makeText(LoginActivity.this,"Sesion iniciada con exito",Toast.LENGTH_SHORT).show();
                             }else{
@@ -109,10 +113,7 @@ public class LoginActivity extends AppCompatActivity {
                 public void onClick(View v) {
                     Intent i = googleSignInClient.getSignInIntent();
                     activityResultLauncher.launch(i);
-                    Intent intent = new Intent(LoginActivity.this,MainActivity.class);
-                    intent.putExtra("nombre",nombre);
-                    intent.putExtra("email",email);
-                    startActivity(intent);
+
                 }
             });
         }
