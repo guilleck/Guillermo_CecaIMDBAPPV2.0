@@ -1,3 +1,4 @@
+
 package es.riberadeltajo.ceca_guillermoimdbapp;
 
 import static androidx.fragment.app.FragmentManager.TAG;
@@ -48,73 +49,90 @@ public class LoginActivity extends AppCompatActivity {
     private FirebaseAuth auth;
     private GoogleSignInClient googleSignInClient;
     private SignInButton signInButton;
-    private String nombre,email;
 
-    private final ActivityResultLauncher<Intent> activityResultLauncher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), new ActivityResultCallback<ActivityResult>() {
-        @Override
-        public void onActivityResult(ActivityResult result) {
-            if (result.getResultCode() == RESULT_OK) {
-                Task<GoogleSignInAccount> accountTask = GoogleSignIn.getSignedInAccountFromIntent(result.getData());
+    // Activity result para manejar la respuesta de Google Sign-In
+    private final ActivityResultLauncher<Intent> activityResultLauncher = registerForActivityResult(
+            new ActivityResultContracts.StartActivityForResult(),
+            new ActivityResultCallback<ActivityResult>() {
+                @Override
+                public void onActivityResult(ActivityResult result) {
+                    if (result.getResultCode() == RESULT_OK) {
+                        Task<GoogleSignInAccount> accountTask = GoogleSignIn.getSignedInAccountFromIntent(result.getData());
 
-                try {
-                    GoogleSignInAccount signInAccount = accountTask.getResult(ApiException.class);
-                    AuthCredential authCredential = GoogleAuthProvider.getCredential(signInAccount.getIdToken(), null);
-                    auth.signInWithCredential(authCredential).addOnCompleteListener(new OnCompleteListener<AuthResult>() {
-                        @Override
-                        public void onComplete(@NonNull Task<AuthResult> task) {
-                            if (task.isSuccessful()) {
-                                auth = FirebaseAuth.getInstance();
-                                nombre = auth.getCurrentUser().getDisplayName();
-                                email = auth.getCurrentUser().getEmail();
-                                Intent intent = new Intent(LoginActivity.this,MainActivity.class);
-                                intent.putExtra("nombre",nombre);
-                                intent.putExtra("email",email);
-                                startActivity(intent);
-
-                                Toast.makeText(LoginActivity.this,"Sesion iniciada con exito",Toast.LENGTH_SHORT).show();
-                            }else{
-                                Toast.makeText(LoginActivity.this,"Todo mal",Toast.LENGTH_SHORT).show();
-                            }
+                        try {
+                            GoogleSignInAccount signInAccount = accountTask.getResult(ApiException.class);
+                            AuthCredential authCredential = GoogleAuthProvider.getCredential(signInAccount.getIdToken(), null);
+                            auth.signInWithCredential(authCredential).addOnCompleteListener(new OnCompleteListener<AuthResult>() {
+                                @Override
+                                public void onComplete(@NonNull Task<AuthResult> task) {
+                                    if (task.isSuccessful()) {
+                                        // Si el inicio de sesión fue exitoso
+                                        Toast.makeText(LoginActivity.this, "Sesión iniciada con éxito", Toast.LENGTH_SHORT).show();
+                                        navigateToMainActivity(); // Redirigir a MainActivity
+                                    } else {
+                                        Toast.makeText(LoginActivity.this, "Error al iniciar sesión", Toast.LENGTH_SHORT).show();
+                                    }
+                                }
+                            });
+                        } catch (ApiException e) {
+                            e.printStackTrace();
+                            Toast.makeText(LoginActivity.this, "Error al autenticar con Google", Toast.LENGTH_SHORT).show();
                         }
-                    });
-                } catch (ApiException e) {
-                    e.printStackTrace();
+                    }
                 }
-
-            }
-        }
-    });
+            });
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        // Verificar si el usuario ya está autenticado
+        auth = FirebaseAuth.getInstance();
+        if (auth.getCurrentUser() != null) {
+            // Si ya hay una sesión, redirigir a MainActivity
+            navigateToMainActivity();
+            return; // Evitar cargar la vista de inicio de sesión
+        }
+
+        // Configurar la vista de inicio de sesión
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_login);
 
         FirebaseApp.initializeApp(this);
+
+        // Configuración de Google Sign-In
         GoogleSignInOptions options = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
                 .requestIdToken(getString(R.string.client_id))
                 .requestEmail()
                 .build();
         googleSignInClient = GoogleSignIn.getClient(LoginActivity.this, options);
-        auth = FirebaseAuth.getInstance();
-        signInButton = findViewById(R.id.sign_in_button);
 
+        // Configurar el botón de inicio de sesión
+        signInButton = findViewById(R.id.sign_in_button);
         for (int i = 0; i < signInButton.getChildCount(); i++) {
             View v = signInButton.getChildAt(i);
-
             if (v instanceof TextView) {
                 ((TextView) v).setText("Sign in with Google");
                 break;
             }
         }
-            signInButton.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    Intent i = googleSignInClient.getSignInIntent();
-                    activityResultLauncher.launch(i);
 
-                }
-            });
-        }
+        // Listener del botón de inicio de sesión
+        signInButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent signInIntent = googleSignInClient.getSignInIntent();
+                activityResultLauncher.launch(signInIntent);
+            }
+        });
     }
+
+    /**
+     * Método para redirigir a MainActivity
+     */
+    private void navigateToMainActivity() {
+        Intent intent = new Intent(LoginActivity.this, MainActivity.class);
+        startActivity(intent);
+        finish(); // Cierra LoginActivity para evitar regresar con el botón de atrás
+    }
+}
