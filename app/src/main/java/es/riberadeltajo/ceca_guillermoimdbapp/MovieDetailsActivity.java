@@ -1,23 +1,26 @@
 package es.riberadeltajo.ceca_guillermoimdbapp;
 
-
+import android.Manifest;
+import android.content.ContentResolver;
 import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.database.Cursor;
+import android.net.Uri;
 import android.os.Bundle;
+import android.provider.ContactsContract;
+import android.telephony.SmsManager;
 import android.util.Log;
+import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
-
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
-
 import com.bumptech.glide.Glide;
-
-import java.util.concurrent.TimeUnit;
-
-
 import es.riberadeltajo.ceca_guillermoimdbapp.api.IMDBApiService;
 import es.riberadeltajo.ceca_guillermoimdbapp.models.Movie;
 import es.riberadeltajo.ceca_guillermoimdbapp.models.MovieOverviewResponse;
@@ -28,6 +31,7 @@ import retrofit2.Callback;
 import retrofit2.Response;
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
+import java.util.concurrent.TimeUnit;
 
 public class MovieDetailsActivity extends AppCompatActivity {
 
@@ -36,6 +40,10 @@ public class MovieDetailsActivity extends AppCompatActivity {
     private IMDBApiService imdbApiService;
     private TextView txt2;
     private ImageView imagen;
+    private static final int REQUEST_CODE_PERMISSIONS = 100;
+    private static final int PICK_CONTACT_REQUEST = 1;
+    private String selectedPhoneNumber;
+    private String movieRating;  // Variable para almacenar el rating
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -53,7 +61,7 @@ public class MovieDetailsActivity extends AppCompatActivity {
 
         txt = findViewById(R.id.TextViewTitle);
         txt2 = findViewById(R.id.TextViewDescription);
-        TextView releaseDateView = findViewById(R.id.TextViewDate); // Referencia al TextView de la fecha
+        TextView releaseDateView = findViewById(R.id.TextViewDate);
         txt.setText(pelicula.getTitle());
         imagen = findViewById(R.id.ImageViewPortada);
 
@@ -66,7 +74,7 @@ public class MovieDetailsActivity extends AppCompatActivity {
         OkHttpClient client = new OkHttpClient.Builder()
                 .addInterceptor(chain -> {
                     Request modifiedRequest = chain.request().newBuilder()
-                            .addHeader("X-RapidAPI-Key", "440d48ca01mshb9178145c398148p1c905ajsn498799d4ab35")
+                            .addHeader("X-RapidAPI-Key", "9c478d1de5msh0376a3e3aa6209ep161637jsn5be10011fc93")
                             .addHeader("X-RapidAPI-Host", "imdb-com.p.rapidapi.com")
                             .build();
                     return chain.proceed(modifiedRequest);
@@ -102,11 +110,16 @@ public class MovieDetailsActivity extends AppCompatActivity {
                     // Obtener y mostrar el rating
                     MovieOverviewResponse.RatingsSummary ratingsSummary = response.body().getData().getTitle().getRatingsSummary();
                     if (ratingsSummary != null) {
-                        double rating = ratingsSummary.getAggregateRating();
+                        movieRating = String.format("%.1f", ratingsSummary.getAggregateRating());  // Guardamos el rating
+                        Log.d("Rating", "Rating obtenido: " + movieRating);  // Añadimos un log para verificar
                         TextView ratingView = findViewById(R.id.TextViewRating);
-                        ratingView.setText("Rating: " + String.format("%.1f", rating));
+                        ratingView.setText("Rating: " + movieRating);
+                    } else {
+                        Log.d("Rating", "No se encontró rating");  // Log si el rating es null
                     }
 
+                } else {
+                    Log.d("API Response", "Respuesta vacía o error en la respuesta");
                 }
             }
 
@@ -116,5 +129,75 @@ public class MovieDetailsActivity extends AppCompatActivity {
             }
         });
 
+        // Verificar permisos
+        checkPermissions();
+
+        // Configurar el botón para seleccionar un contacto y abrir SMS
+        Button btnSendSms = findViewById(R.id.btnSendSms);
+        btnSendSms.setOnClickListener(view -> {
+            if (selectedPhoneNumber == null) {
+                // Si no hay contacto seleccionado, abrir el selector de contactos
+                Intent intent = new Intent(Intent.ACTION_PICK, ContactsContract.CommonDataKinds.Phone.CONTENT_URI);
+                startActivityForResult(intent, PICK_CONTACT_REQUEST);
+            } else {
+                openSmsApp();
+            }
+        });
+    }
+
+    // Verificar permisos en tiempo de ejecución
+    private void checkPermissions() {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.SEND_SMS) != PackageManager.PERMISSION_GRANTED ||
+                ContextCompat.checkSelfPermission(this, Manifest.permission.READ_CONTACTS) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this,
+                    new String[]{Manifest.permission.SEND_SMS, Manifest.permission.READ_CONTACTS},
+                    REQUEST_CODE_PERMISSIONS);
+        }
+    }
+
+    // Método para abrir la app de SMS con el número y el mensaje prellenado
+    private void openSmsApp() {
+        String movieDetails = "Esta película te gustará: " + pelicula.getTitle() + "\nRating: " + movieRating;  // Usamos el rating guardado
+
+        // Intent para abrir la aplicación de SMS con el mensaje prellenado
+        if (selectedPhoneNumber != null) {
+            Intent smsIntent = new Intent(Intent.ACTION_SENDTO, Uri.parse("smsto:" + selectedPhoneNumber));
+            smsIntent.putExtra("sms_body", movieDetails);
+            startActivity(smsIntent);
+        }
+    }
+
+    // Manejo de la selección de contacto
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == PICK_CONTACT_REQUEST && resultCode == RESULT_OK && data != null) {
+            Uri contactUri = data.getData();
+            String[] projection = {ContactsContract.CommonDataKinds.Phone.NUMBER};
+
+            Cursor cursor = getContentResolver().query(contactUri, projection, null, null, null);
+            if (cursor != null && cursor.moveToFirst()) {
+                int columnIndex = cursor.getColumnIndex(ContactsContract.CommonDataKinds.Phone.NUMBER);
+                selectedPhoneNumber = cursor.getString(columnIndex);
+                cursor.close();
+                // Después de seleccionar el contacto, abrir la aplicación de SMS
+                openSmsApp();
+            }
+        }
+    }
+
+    // Manejo de resultados de permisos
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == REQUEST_CODE_PERMISSIONS) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                // Permisos concedidos
+                Log.d("Permissions", "Permisos concedidos");
+            } else {
+                // Permisos no concedidos
+                Log.d("Permissions", "Permisos no concedidos");
+            }
+        }
     }
 }
