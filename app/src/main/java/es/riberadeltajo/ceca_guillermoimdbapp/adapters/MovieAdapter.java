@@ -1,12 +1,11 @@
 package es.riberadeltajo.ceca_guillermoimdbapp.adapters;
 
 import android.content.Context;
+import android.content.Intent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
-import android.widget.TextView;
-
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -14,13 +13,15 @@ import com.bumptech.glide.Glide;
 
 import java.util.List;
 
-import es.riberadeltajo.ceca_guillermoimdbapp.models.Movie;
 import es.riberadeltajo.ceca_guillermoimdbapp.R;
+import es.riberadeltajo.ceca_guillermoimdbapp.models.Movie;
+import es.riberadeltajo.ceca_guillermoimdbapp.MovieDetailsActivity;
+
 
 public class MovieAdapter extends RecyclerView.Adapter<MovieAdapter.MovieViewHolder> {
 
-    private List<Movie> movieList;
-    private Context context;
+    private final Context context;
+    private final List<Movie> movieList;
 
     public MovieAdapter(Context context, List<Movie> movieList) {
         this.context = context;
@@ -37,8 +38,22 @@ public class MovieAdapter extends RecyclerView.Adapter<MovieAdapter.MovieViewHol
     @Override
     public void onBindViewHolder(@NonNull MovieViewHolder holder, int position) {
         Movie movie = movieList.get(position);
-        holder.textViewTitle.setText(movie.getTitle());
-        Glide.with(context).load(movie.getImageUrl()).into(holder.imageViewPoster);
+
+        // Cargar la imagen del poster usando Glide
+        Glide.with(context)
+                .load(movie.getPosterPath())
+                .into(holder.posterImageView);
+
+        // Listener para cuando se pulsa sobre la película
+        holder.itemView.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent i = new Intent(context, MovieDetailsActivity.class);
+                i.putExtra("pelicula", movie);
+                context.startActivity(i);
+            }
+        });
+
     }
 
     @Override
@@ -47,13 +62,11 @@ public class MovieAdapter extends RecyclerView.Adapter<MovieAdapter.MovieViewHol
     }
 
     public static class MovieViewHolder extends RecyclerView.ViewHolder {
-        ImageView imageViewPoster;
-        TextView textViewTitle;
+        ImageView posterImageView;
 
         public MovieViewHolder(@NonNull View itemView) {
             super(itemView);
-            imageViewPoster = itemView.findViewById(R.id.imageViewPoster);
-            textViewTitle = itemView.findViewById(R.id.textViewTitle);
+            posterImageView = itemView.findViewById(R.id.ImageViewPelicula);
         }
     }
 }

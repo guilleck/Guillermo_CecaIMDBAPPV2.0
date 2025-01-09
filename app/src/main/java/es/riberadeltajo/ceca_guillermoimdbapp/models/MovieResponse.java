@@ -1,11 +1,31 @@
 package es.riberadeltajo.ceca_guillermoimdbapp.models;
 
-import java.util.List;
-
 public class MovieResponse {
-    private List<Movie> movies;
+    private Movie data;
+    private boolean status;
+    private String message;
 
-    public List<Movie> getMovies() {
-        return movies;
+    public Movie getData() {
+        return data;
+    }
+
+    public void setData(Movie data) {
+        this.data = data;
+    }
+
+    public boolean isStatus() {
+        return status;
+    }
+
+    public void setStatus(boolean status) {
+        this.status = status;
+    }
+
+    public String getMessage() {
+        return message;
+    }
+
+    public void setMessage(String message) {
+        this.message = message;
     }
 }

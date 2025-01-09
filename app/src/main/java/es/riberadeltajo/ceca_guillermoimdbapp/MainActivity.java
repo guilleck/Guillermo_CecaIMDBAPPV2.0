@@ -1,4 +1,3 @@
-
 package es.riberadeltajo.ceca_guillermoimdbapp;
 
 import android.content.Intent;
@@ -26,9 +25,13 @@ import androidx.navigation.ui.AppBarConfiguration;
 import androidx.navigation.ui.NavigationUI;
 import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.recyclerview.widget.LinearLayoutManager;
 
+import java.util.List;
 import es.riberadeltajo.ceca_guillermoimdbapp.databinding.ActivityMainBinding;
-
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -91,6 +94,8 @@ public class MainActivity extends AppCompatActivity {
                 .build();
         NavigationUI.setupActionBarWithNavController(this, navController, mAppBarConfiguration);
         NavigationUI.setupWithNavController(navigationView, navController);
+
+
     }
 
     @Override
@@ -129,4 +134,5 @@ public class MainActivity extends AppCompatActivity {
         startActivity(intent);
         finish();
     }
+
 }
