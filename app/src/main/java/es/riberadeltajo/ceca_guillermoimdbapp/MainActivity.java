@@ -49,6 +49,7 @@ public class MainActivity extends AppCompatActivity {
         // Configurar Toolbar
         setSupportActionBar(binding.appBarMain.toolbar);
 
+
         // Inicializar FirebaseAuth
         auth = FirebaseAuth.getInstance();
         googleSignInClient = GoogleSignIn.getClient(this, GoogleSignInOptions.DEFAULT_SIGN_IN);
@@ -89,7 +90,7 @@ public class MainActivity extends AppCompatActivity {
         // Configurar NavController
         NavController navController = Navigation.findNavController(this, R.id.nav_host_fragment_content_main);
         mAppBarConfiguration = new AppBarConfiguration.Builder(
-                R.id.nav_home, R.id.nav_search, R.id.nav_slideshow)
+                R.id.nav_home, R.id.nav_search, R.id.nav_buscar)
                 .setOpenableLayout(drawer)
                 .build();
         NavigationUI.setupActionBarWithNavController(this, navController, mAppBarConfiguration);
@@ -101,6 +102,8 @@ public class MainActivity extends AppCompatActivity {
                 navController.navigate(R.id.nav_home);
             }else if(id == R.id.nav_favoritas){
                 navController.navigate(R.id.nav_search);
+            }else if(id == R.id.nav_buscar){
+                navController.navigate(R.id.nav_buscarPeli);
             }
             return true;
         });

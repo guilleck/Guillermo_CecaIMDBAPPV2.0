@@ -12,13 +12,13 @@
 
     <fragment
         android:id="@+id/nav_search"
-        android:name="es.riberadeltajo.ceca_guillermoimdbapp.ui.slideshow.SearchFragment"
+        android:name="es.riberadeltajo.ceca_guillermoimdbapp.ui.slideshow.FavoriteFragment"
         android:label="Gallery"
         tools:layout="@layout/fragment_gallery" />
 
     <fragment
-        android:id="@+id/nav_slideshow"
-        android:name="es.riberadeltajo.ceca_guillermoimdbapp.ui.slideshow.SlideshowFragment"
+        android:id="@+id/nav_buscarPeli"
+        android:name="es.riberadeltajo.ceca_guillermoimdbapp.ui.slideshow.SearchFragment"
         android:label="Slideshow"
         tools:layout="@layout/fragment_slideshow" />
 
