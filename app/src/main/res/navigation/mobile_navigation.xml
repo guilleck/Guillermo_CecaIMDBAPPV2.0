@@ -11,8 +11,8 @@
         tools:layout="@layout/fragment_home" />
 
     <fragment
-        android:id="@+id/nav_gallery"
-        android:name="es.riberadeltajo.ceca_guillermoimdbapp.ui.gallery.GalleryFragment"
+        android:id="@+id/nav_search"
+        android:name="es.riberadeltajo.ceca_guillermoimdbapp.ui.slideshow.SearchFragment"
         android:label="Gallery"
         tools:layout="@layout/fragment_gallery" />
 

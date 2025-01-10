@@ -7,4 +7,5 @@
     <item name="TextViewDate" type="id" />
     <item name="TextViewRating" type="id" />
     <item name="btnSendSms" type="id" />
+    <item name="recyclerViewSearch" type="id" />
 </resources>

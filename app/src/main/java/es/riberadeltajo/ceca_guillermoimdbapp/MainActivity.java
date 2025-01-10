@@ -89,11 +89,21 @@ public class MainActivity extends AppCompatActivity {
         // Configurar NavController
         NavController navController = Navigation.findNavController(this, R.id.nav_host_fragment_content_main);
         mAppBarConfiguration = new AppBarConfiguration.Builder(
-                R.id.nav_home, R.id.nav_gallery, R.id.nav_slideshow)
+                R.id.nav_home, R.id.nav_search, R.id.nav_slideshow)
                 .setOpenableLayout(drawer)
                 .build();
         NavigationUI.setupActionBarWithNavController(this, navController, mAppBarConfiguration);
         NavigationUI.setupWithNavController(navigationView, navController);
+
+        navigationView.setNavigationItemSelectedListener(item -> {
+            int id = item.getItemId();
+            if(id == R.id.nav_top_10){
+                navController.navigate(R.id.nav_home);
+            }else if(id == R.id.nav_favoritas){
+                navController.navigate(R.id.nav_search);
+            }
+            return true;
+        });
 
 
     }

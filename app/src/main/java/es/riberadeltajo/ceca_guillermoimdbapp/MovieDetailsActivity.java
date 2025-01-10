@@ -1,3 +1,4 @@
+
 package es.riberadeltajo.ceca_guillermoimdbapp;
 
 import android.Manifest;
@@ -40,6 +41,7 @@ public class MovieDetailsActivity extends AppCompatActivity {
     private IMDBApiService imdbApiService;
     private TextView txt2;
     private ImageView imagen;
+    private Button btnBackToTop10;
     private static final int REQUEST_CODE_PERMISSIONS = 100;
     private static final int PICK_CONTACT_REQUEST = 1;
     private String selectedPhoneNumber;
@@ -64,6 +66,7 @@ public class MovieDetailsActivity extends AppCompatActivity {
         TextView releaseDateView = findViewById(R.id.TextViewDate);
         txt.setText(pelicula.getTitle());
         imagen = findViewById(R.id.ImageViewPortada);
+        btnBackToTop10 = findViewById(R.id.btnBackToTop10);
 
         // Cargar la imagen del poster usando Glide
         Glide.with(this)
@@ -142,6 +145,12 @@ public class MovieDetailsActivity extends AppCompatActivity {
             } else {
                 openSmsApp();
             }
+        });
+        btnBackToTop10.setOnClickListener(v -> {
+            // Regresar al HomeFragment o a la pantalla principal con el Top 10
+            Intent intent = new Intent(MovieDetailsActivity.this, MainActivity.class);
+            startActivity(intent);
+            finish();  // Finaliza la actividad actual
         });
     }
 

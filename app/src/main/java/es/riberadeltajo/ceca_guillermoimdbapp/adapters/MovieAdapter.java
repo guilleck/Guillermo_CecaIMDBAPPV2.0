@@ -1,3 +1,4 @@
+
 package es.riberadeltajo.ceca_guillermoimdbapp.adapters;
 
 import android.content.Context;
@@ -6,6 +7,8 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
+import android.widget.Toast;
+
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -14,6 +17,7 @@ import com.bumptech.glide.Glide;
 import java.util.List;
 
 import es.riberadeltajo.ceca_guillermoimdbapp.R;
+import es.riberadeltajo.ceca_guillermoimdbapp.database.FavoritesManager;
 import es.riberadeltajo.ceca_guillermoimdbapp.models.Movie;
 import es.riberadeltajo.ceca_guillermoimdbapp.MovieDetailsActivity;
 
@@ -21,11 +25,14 @@ import es.riberadeltajo.ceca_guillermoimdbapp.MovieDetailsActivity;
 public class MovieAdapter extends RecyclerView.Adapter<MovieAdapter.MovieViewHolder> {
 
     private final Context context;
-    private final List<Movie> movieList;
+    private List<Movie> movieList;
+    private OnItemLongClickListener onItemLongClickListener;
+    private FavoritesManager favoritesManager;
 
-    public MovieAdapter(Context context, List<Movie> movieList) {
+    public MovieAdapter(Context context, List<Movie> movieList, FavoritesManager favoritesManager) {
         this.context = context;
         this.movieList = movieList;
+        this.favoritesManager = favoritesManager;
     }
 
     @NonNull
@@ -45,20 +52,53 @@ public class MovieAdapter extends RecyclerView.Adapter<MovieAdapter.MovieViewHol
                 .into(holder.posterImageView);
 
         // Listener para cuando se pulsa sobre la película
-        holder.itemView.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Intent i = new Intent(context, MovieDetailsActivity.class);
-                i.putExtra("pelicula", movie);
-                context.startActivity(i);
-            }
+        holder.itemView.setOnClickListener(v -> {
+            Intent i = new Intent(context, MovieDetailsActivity.class);
+            i.putExtra("pelicula", movie);
+            context.startActivity(i);
         });
+        // Cargar la imagen del poster usando Glide
+        Glide.with(context)
+                .load(movie.getPosterPath())
+                .into(holder.posterImageView);
 
+        holder.itemView.setOnLongClickListener(v -> {
+            if (isMovieInFavorites(movie)) {
+                // Si la película está en favoritos, la eliminamos
+                favoritesManager.removeFavorite(movie);
+                movieList.remove(position);  // Eliminar de la lista
+                notifyItemRemoved(position);  // Notificar al adaptador
+                Toast.makeText(context, "Eliminada de favoritos: " + movie.getTitle(), Toast.LENGTH_SHORT).show();
+            } else {
+                // Si la película no está en favoritos, la agregamos
+                favoritesManager.addFavorite(movie);
+                Toast.makeText(context, "Agregada a favoritos: " + movie.getTitle(), Toast.LENGTH_SHORT).show();
+            }
+            return true;  // El evento fue manejado
+        });
     }
 
     @Override
     public int getItemCount() {
         return movieList.size();
+    }
+
+    public void setOnItemLongClickListener(OnItemLongClickListener listener) {
+        this.onItemLongClickListener = listener;
+    }
+    private boolean isMovieInFavorites(Movie movie) {
+        // Verifica si la película ya está en los favoritos
+        List<Movie> favorites = favoritesManager.getFavorites();
+        for (Movie m : favorites) {
+            if (m.getId().equals(movie.getId())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public interface OnItemLongClickListener {
+        void onLongClick(Movie movie);
     }
 
     public static class MovieViewHolder extends RecyclerView.ViewHolder {
@@ -69,4 +109,9 @@ public class MovieAdapter extends RecyclerView.Adapter<MovieAdapter.MovieViewHol
             posterImageView = itemView.findViewById(R.id.ImageViewPelicula);
         }
     }
+    public void updateMovies(List<Movie> newMovies) {
+        this.movieList = newMovies;
+        notifyDataSetChanged();
+    }
+
 }

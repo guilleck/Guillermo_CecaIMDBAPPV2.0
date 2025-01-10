@@ -1,3 +1,4 @@
+
 package es.riberadeltajo.ceca_guillermoimdbapp.ui.home;
 
 import android.os.Bundle;
@@ -6,6 +7,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
@@ -19,6 +21,8 @@ import java.util.concurrent.TimeUnit;
 
 import es.riberadeltajo.ceca_guillermoimdbapp.adapters.MovieAdapter;
 import es.riberadeltajo.ceca_guillermoimdbapp.api.IMDBApiService;
+import es.riberadeltajo.ceca_guillermoimdbapp.database.FavoritesDatabaseHelper;
+import es.riberadeltajo.ceca_guillermoimdbapp.database.FavoritesManager;
 import es.riberadeltajo.ceca_guillermoimdbapp.databinding.FragmentHomeBinding;
 import es.riberadeltajo.ceca_guillermoimdbapp.models.Movie;
 import es.riberadeltajo.ceca_guillermoimdbapp.models.PopularMoviesResponse;
@@ -37,6 +41,8 @@ public class HomeFragment extends Fragment {
     private List<Movie> movieList = new ArrayList<>();
     private MovieAdapter adapter;
     private RecyclerView re;
+    private FavoritesDatabaseHelper databaseHelper;
+    private FavoritesManager favoritesManager;
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater,
@@ -46,17 +52,20 @@ public class HomeFragment extends Fragment {
         binding = FragmentHomeBinding.inflate(inflater, container, false);
         View root = binding.getRoot();
 
+
+
         // Configurar el recyclerview
         re = binding.recycler;
         re.setLayoutManager(new GridLayoutManager(getContext(), 2));
-        adapter = new MovieAdapter(getContext(), movieList);
+        favoritesManager = new FavoritesManager(getContext());
+        adapter = new MovieAdapter(getContext(), movieList,favoritesManager);
         re.setAdapter(adapter);
 
         // Configuración la API
         OkHttpClient client = new OkHttpClient.Builder()
                 .addInterceptor(chain -> {
                     Request modifiedRequest = chain.request().newBuilder()
-                            .addHeader("X-RapidAPI-Key", "440d48ca01mshb9178145c398148p1c905ajsn498799d4ab35")
+                            .addHeader("X-RapidAPI-Key", "9c478d1de5msh0376a3e3aa6209ep161637jsn5be10011fc93")
                             .addHeader("X-RapidAPI-Host", "imdb-com.p.rapidapi.com")
                             .build();
                     return chain.proceed(modifiedRequest);
@@ -104,8 +113,16 @@ public class HomeFragment extends Fragment {
             }
         });
 
+        adapter.setOnItemLongClickListener(movie -> {
+            favoritesManager.addFavorite(movie);  // Guarda la película en la base de datos
+            movieList.add(movie);  // Añade la película a la lista del fragmento
+            adapter.notifyItemInserted(movieList.size() - 1);  // Notifica al adaptador que se añadió un nuevo ítem
+            Toast.makeText(getContext(), "Película añadida a favoritos: " + movie.getTitle(), Toast.LENGTH_SHORT).show();
+        });
+
         return root;
     }
+
 
     @Override
     public void onDestroyView() {
