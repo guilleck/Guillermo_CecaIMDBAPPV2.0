@@ -14,26 +14,41 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
 
+import java.util.ArrayList;
 import java.util.List;
 
+
 import es.riberadeltajo.ceca_guillermoimdbapp.R;
+import es.riberadeltajo.ceca_guillermoimdbapp.database.FavoritesDatabaseHelper;
 import es.riberadeltajo.ceca_guillermoimdbapp.database.FavoritesManager;
 import es.riberadeltajo.ceca_guillermoimdbapp.models.Movie;
 import es.riberadeltajo.ceca_guillermoimdbapp.MovieDetailsActivity;
+import es.riberadeltajo.ceca_guillermoimdbapp.models.TMDBMovie;
 
 
 public class MovieAdapter extends RecyclerView.Adapter<MovieAdapter.MovieViewHolder> {
-
     private final Context context;
-    private List<Movie> movieList;
+    private List<Movie> movieList = new ArrayList<>();
     private OnItemLongClickListener onItemLongClickListener;
     private FavoritesManager favoritesManager;
+
+
+    public MovieAdapter(Context context, List<Movie> movieList) {
+        this.context = context;
+        this.movieList = movieList;
+    }
 
     public MovieAdapter(Context context, List<Movie> movieList, FavoritesManager favoritesManager) {
         this.context = context;
         this.movieList = movieList;
         this.favoritesManager = favoritesManager;
     }
+
+    public MovieAdapter(Context context,List<Movie> movieList, String idUsuario, FavoritesDatabaseHelper databaseHelper, boolean b ) {
+        this.context = context;
+    }
+
+
 
     @NonNull
     @Override
@@ -76,6 +91,8 @@ public class MovieAdapter extends RecyclerView.Adapter<MovieAdapter.MovieViewHol
             }
             return true;  // El evento fue manejado
         });
+
+
     }
 
     @Override
@@ -87,7 +104,6 @@ public class MovieAdapter extends RecyclerView.Adapter<MovieAdapter.MovieViewHol
         this.onItemLongClickListener = listener;
     }
     private boolean isMovieInFavorites(Movie movie) {
-        // Verifica si la película ya está en los favoritos
         List<Movie> favorites = favoritesManager.getFavorites();
         for (Movie m : favorites) {
             if (m.getId().equals(movie.getId())) {
@@ -109,9 +125,11 @@ public class MovieAdapter extends RecyclerView.Adapter<MovieAdapter.MovieViewHol
             posterImageView = itemView.findViewById(R.id.ImageViewPelicula);
         }
     }
-    public void updateMovies(List<Movie> newMovies) {
-        this.movieList = newMovies;
+    public void updateMovies(List<Movie> newMovieList) {
+        movieList.clear();
+        movieList.addAll(newMovieList);
         notifyDataSetChanged();
     }
+
 
 }

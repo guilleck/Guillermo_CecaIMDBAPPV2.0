@@ -11,5 +11,32 @@
     <string name="menu_gallery">Gallery</string>
     <string name="menu_slideshow">Slideshow</string>
 
+    <string-array name="movie_genres">
+        <item>Acción</item>
+        <item>Comedia</item>
+        <item>Drama</item>
+        <item>Terror</item>
+        <item>Ciencia Ficción</item>
+        <item>Romántica</item>
+        <item>Aventura</item>
+        <item>Familia</item>
+        <item>Crimen</item>
+        <item>Misterio</item>
+        <item>Fantasía</item>
+        <item>Historia</item>
+        <item>Animación</item>
+        <item>Documental</item>
+        <item>Musical</item>
+        <item>Bélico</item>
+        <item>Deporte</item>
+        <item>Suspense</item>
+        <item>Guerra</item>
+        <item>Western</item>
+        <item>Ciencia</item>
+        <item>Policial</item>
+        <item>Thriller</item>
+        <item>Biografía</item>
+    </string-array>
+
 
 </resources>

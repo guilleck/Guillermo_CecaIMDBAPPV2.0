@@ -15,6 +15,7 @@ import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -61,7 +62,7 @@ public class HomeFragment extends Fragment {
         adapter = new MovieAdapter(getContext(), movieList,favoritesManager);
         re.setAdapter(adapter);
 
-        // Configuración la API
+
         OkHttpClient client = new OkHttpClient.Builder()
                 .addInterceptor(chain -> {
                     Request modifiedRequest = chain.request().newBuilder()
@@ -74,7 +75,7 @@ public class HomeFragment extends Fragment {
                 .readTimeout(30, TimeUnit.SECONDS)
                 .build();
 
-        // Inicialización de la librería Retrofit
+
         Retrofit retrofit = new Retrofit.Builder()
                 .baseUrl("https://imdb-com.p.rapidapi.com/")
                 .client(client)
@@ -83,7 +84,6 @@ public class HomeFragment extends Fragment {
 
         imdbApiService = retrofit.create(IMDBApiService.class);
 
-        // Realizar la llamada a la API
         Call<PopularMoviesResponse> call = imdbApiService.obtenerTop10("US");
         call.enqueue(new Callback<PopularMoviesResponse>() {
             @Override
@@ -114,9 +114,9 @@ public class HomeFragment extends Fragment {
         });
 
         adapter.setOnItemLongClickListener(movie -> {
-            favoritesManager.addFavorite(movie);  // Guarda la película en la base de datos
-            movieList.add(movie);  // Añade la película a la lista del fragmento
-            adapter.notifyItemInserted(movieList.size() - 1);  // Notifica al adaptador que se añadió un nuevo ítem
+            favoritesManager.addFavorite(movie);
+            movieList.add(movie);
+            adapter.notifyItemInserted(movieList.size() - 1);
             Toast.makeText(getContext(), "Película añadida a favoritos: " + movie.getTitle(), Toast.LENGTH_SHORT).show();
         });
 

@@ -28,8 +28,10 @@
             android:name=".adapters.MovieAdapter"
             android:exported="false" />
         <activity
-            android:name=".MovieDetailsActivity"
-            android:exported="false" />
+            android:name=".MovieSearchResultActivity">
+
+        </activity>
+
         <activity
             android:name=".LoginActivity"
             android:exported="true">

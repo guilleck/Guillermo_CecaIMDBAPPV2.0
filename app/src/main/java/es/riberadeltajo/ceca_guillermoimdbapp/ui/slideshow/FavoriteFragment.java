@@ -10,6 +10,8 @@ import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.Toast;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
@@ -33,6 +35,19 @@ public class FavoriteFragment extends Fragment {
     private MovieAdapter adapter;
     private List<Movie> movieList = new ArrayList<>();
     private FavoritesManager favoritesManager;
+
+    private final ActivityResultLauncher<String[]> bluetoothPermissions =
+            registerForActivityResult(new ActivityResultContracts.RequestMultiplePermissions(), result -> {
+                if (result.getOrDefault(Manifest.permission.BLUETOOTH_CONNECT, false) &&
+                        result.getOrDefault(Manifest.permission.BLUETOOTH_SCAN, false) &&
+                        result.getOrDefault(Manifest.permission.BLUETOOTH_ADMIN, false)) {
+                    // Permisos concedidos, compartir las películas
+                    shareFavorites();
+                } else {
+                    // Permiso denegado, mostrar mensaje
+                    Toast.makeText(getContext(), "Permiso de Bluetooth denegado", Toast.LENGTH_SHORT).show();
+                }
+            });
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater,
@@ -103,22 +118,6 @@ public class FavoriteFragment extends Fragment {
         } else {
             // Si ya se tienen los permisos, compartir las películas
             shareFavorites();
-        }
-    }
-
-
-    // Manejo de los resultados de la solicitud de permisos de Bluetooth
-    @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if (requestCode == BLUETOOTH_PERMISSION_REQUEST_CODE) {
-            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                // Permiso concedido, compartir las películas
-                shareFavorites();
-            } else {
-                // Permiso denegado, mostrar un mensaje
-                Toast.makeText(getContext(), "Permiso de Bluetooth denegado", Toast.LENGTH_SHORT).show();
-            }
         }
     }
 
