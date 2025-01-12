@@ -1,31 +1,54 @@
+
 package es.riberadeltajo.ceca_guillermoimdbapp.adapters;
 
 import android.content.Context;
+import android.content.Intent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
-import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
 
+import java.util.ArrayList;
 import java.util.List;
 
-import es.riberadeltajo.ceca_guillermoimdbapp.models.Movie;
+
 import es.riberadeltajo.ceca_guillermoimdbapp.R;
+import es.riberadeltajo.ceca_guillermoimdbapp.database.FavoritesDatabaseHelper;
+import es.riberadeltajo.ceca_guillermoimdbapp.database.FavoritesManager;
+import es.riberadeltajo.ceca_guillermoimdbapp.models.Movie;
+import es.riberadeltajo.ceca_guillermoimdbapp.MovieDetailsActivity;
+import es.riberadeltajo.ceca_guillermoimdbapp.models.TMDBMovie;
+
 
 public class MovieAdapter extends RecyclerView.Adapter<MovieAdapter.MovieViewHolder> {
+    private final Context context;
+    private List<Movie> movieList = new ArrayList<>();
+    private OnItemLongClickListener onItemLongClickListener;
+    private FavoritesManager favoritesManager;
 
-    private List<Movie> movieList;
-    private Context context;
 
     public MovieAdapter(Context context, List<Movie> movieList) {
         this.context = context;
         this.movieList = movieList;
     }
+
+    public MovieAdapter(Context context, List<Movie> movieList, FavoritesManager favoritesManager) {
+        this.context = context;
+        this.movieList = movieList;
+        this.favoritesManager = favoritesManager;
+    }
+
+    public MovieAdapter(Context context,List<Movie> movieList, String idUsuario, FavoritesDatabaseHelper databaseHelper, boolean b ) {
+        this.context = context;
+    }
+
+
 
     @NonNull
     @Override
@@ -37,8 +60,32 @@ public class MovieAdapter extends RecyclerView.Adapter<MovieAdapter.MovieViewHol
     @Override
     public void onBindViewHolder(@NonNull MovieViewHolder holder, int position) {
         Movie movie = movieList.get(position);
-        holder.textViewTitle.setText(movie.getTitle());
-        Glide.with(context).load(movie.getImageUrl()).into(holder.imageViewPoster);
+
+        Glide.with(context)
+                .load(movie.getPosterPath())
+                .into(holder.posterImageView);
+
+        holder.itemView.setOnClickListener(v -> {
+            Intent i = new Intent(context, MovieDetailsActivity.class);
+            i.putExtra("pelicula", movie);
+            context.startActivity(i);
+        });
+        Glide.with(context)
+                .load(movie.getPosterPath())
+                .into(holder.posterImageView);
+
+        holder.itemView.setOnLongClickListener(v -> {
+            if (isMovieInFavorites(movie)) {
+                favoritesManager.removeFavorite(movie);
+                movieList.remove(position);
+                notifyItemRemoved(position);
+                Toast.makeText(context, "Eliminada de favoritos: " + movie.getTitle(), Toast.LENGTH_SHORT).show();
+            } else {
+                favoritesManager.addFavorite(movie);
+                Toast.makeText(context, "Agregada a favoritos: " + movie.getTitle(), Toast.LENGTH_SHORT).show();
+            }
+            return true;
+        });
     }
 
     @Override
@@ -46,14 +93,36 @@ public class MovieAdapter extends RecyclerView.Adapter<MovieAdapter.MovieViewHol
         return movieList.size();
     }
 
+    public void setOnItemLongClickListener(OnItemLongClickListener listener) {
+        this.onItemLongClickListener = listener;
+    }
+    private boolean isMovieInFavorites(Movie movie) {
+        List<Movie> favorites = favoritesManager.getFavorites();
+        for (Movie m : favorites) {
+            if (m.getId().equals(movie.getId())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public interface OnItemLongClickListener {
+        void onLongClick(Movie movie);
+    }
+
     public static class MovieViewHolder extends RecyclerView.ViewHolder {
-        ImageView imageViewPoster;
-        TextView textViewTitle;
+        ImageView posterImageView;
 
         public MovieViewHolder(@NonNull View itemView) {
             super(itemView);
-            imageViewPoster = itemView.findViewById(R.id.imageViewPoster);
-            textViewTitle = itemView.findViewById(R.id.textViewTitle);
+            posterImageView = itemView.findViewById(R.id.ImageViewPelicula);
         }
     }
+    public void updateMovies(List<Movie> newMovieList) {
+        movieList.clear();
+        movieList.addAll(newMovieList);
+        notifyDataSetChanged();
+    }
+
+
 }

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <item name="ImageViewPelicula" type="id" />
+    <item name="ImageViewPortada" type="id" />
+    <item name="TextViewTitle" type="id" />
+    <item name="TextViewDescription" type="id" />
+    <item name="TextViewDate" type="id" />
+    <item name="TextViewRating" type="id" />
+    <item name="btnSendSms" type="id" />
+    <item name="recyclerViewSearch" type="id" />
+</resources>
