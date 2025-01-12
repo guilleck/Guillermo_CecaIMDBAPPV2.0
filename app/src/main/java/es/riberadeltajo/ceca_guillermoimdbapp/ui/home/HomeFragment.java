@@ -38,10 +38,10 @@ import retrofit2.converter.gson.GsonConverterFactory;
 public class HomeFragment extends Fragment {
 
     private FragmentHomeBinding binding;
-    private IMDBApiService imdbApiService;
+    private IMDBApiService ApiService;
     private List<Movie> movieList = new ArrayList<>();
     private MovieAdapter adapter;
-    private RecyclerView re;
+    private RecyclerView recyclerView;
     private FavoritesDatabaseHelper databaseHelper;
     private FavoritesManager favoritesManager;
 
@@ -53,15 +53,11 @@ public class HomeFragment extends Fragment {
         binding = FragmentHomeBinding.inflate(inflater, container, false);
         View root = binding.getRoot();
 
-
-
-        // Configurar el recyclerview
-        re = binding.recycler;
-        re.setLayoutManager(new GridLayoutManager(getContext(), 2));
+        recyclerView = binding.recycler;
+        recyclerView.setLayoutManager(new GridLayoutManager(getContext(), 2));
         favoritesManager = new FavoritesManager(getContext());
         adapter = new MovieAdapter(getContext(), movieList,favoritesManager);
-        re.setAdapter(adapter);
-
+        recyclerView.setAdapter(adapter);
 
         OkHttpClient client = new OkHttpClient.Builder()
                 .addInterceptor(chain -> {
@@ -82,9 +78,9 @@ public class HomeFragment extends Fragment {
                 .addConverterFactory(GsonConverterFactory.create())
                 .build();
 
-        imdbApiService = retrofit.create(IMDBApiService.class);
+        ApiService = retrofit.create(IMDBApiService.class);
 
-        Call<PopularMoviesResponse> call = imdbApiService.obtenerTop10("US");
+        Call<PopularMoviesResponse> call = ApiService.obtenerTop10("US");
         call.enqueue(new Callback<PopularMoviesResponse>() {
             @Override
             public void onResponse(Call<PopularMoviesResponse> call, Response<PopularMoviesResponse> response) {

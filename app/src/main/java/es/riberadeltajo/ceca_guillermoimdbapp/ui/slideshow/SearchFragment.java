@@ -32,10 +32,10 @@ import java.util.List;
 public class SearchFragment extends Fragment {
 
     private FragmentSearchBinding binding;
-    private TMDBApiService tmdbApiService;
+    private TMDBApiService ApiService;
     private Spinner spinnerGeneros;
     private List<Genero> generosList = new ArrayList<>();
-    private static final String TMDB_API_KEY = "eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiI5NmI0NWY5MmNkYWNhZjY3NDFlNWVmMTA1MzY1MDkwNyIsIm5iZiI6MTczNjUzOTExMS4zNDUsInN1YiI6IjY3ODE3YmU3Mzg4MWM3OTQxOWJiNzcxNyIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.yNCqvMpnCqFwGPCHxfoSA1sO_8boWww7SRYrpeEsWJ0"; // Reemplazar con la API key
+    private static final String API_KEY = "eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiI5NmI0NWY5MmNkYWNhZjY3NDFlNWVmMTA1MzY1MDkwNyIsIm5iZiI6MTczNjUzOTExMS4zNDUsInN1YiI6IjY3ODE3YmU3Mzg4MWM3OTQxOWJiNzcxNyIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.yNCqvMpnCqFwGPCHxfoSA1sO_8boWww7SRYrpeEsWJ0"; // Reemplazar con la API key
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater,
@@ -45,14 +45,13 @@ public class SearchFragment extends Fragment {
 
         spinnerGeneros = binding.genreSpinner;
 
-        // Configurar Retrofit con Interceptor para añadir headers
         Retrofit retrofit = new Retrofit.Builder()
                 .baseUrl("https://api.themoviedb.org/3/")
                 .addConverterFactory(GsonConverterFactory.create())
                 .client(new okhttp3.OkHttpClient.Builder()
                         .addInterceptor(chain -> {
                             okhttp3.Request request = chain.request().newBuilder()
-                                    .addHeader("Authorization", "Bearer " + TMDB_API_KEY)
+                                    .addHeader("Authorization", "Bearer " + API_KEY)
                                     .addHeader("accept", "application/json")
                                     .build();
                             return chain.proceed(request);
@@ -60,12 +59,10 @@ public class SearchFragment extends Fragment {
                         .build())
                 .build();
 
-        tmdbApiService = retrofit.create(TMDBApiService.class);
+        ApiService = retrofit.create(TMDBApiService.class);
 
-        // Obtener géneros desde la API
         getGenres();
 
-        // Configurar el botón de búsqueda
         binding.searchButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -73,23 +70,17 @@ public class SearchFragment extends Fragment {
                     Toast.makeText(getContext(), "El año no puede estar vacío", Toast.LENGTH_SHORT).show();
                 } else {
                     String date = binding.yearEditText.getText().toString();
-
-                    // Obtener la posición seleccionada en el Spinner
                     int selectedPosition = spinnerGeneros.getSelectedItemPosition();
 
-                    // Verificar que la posición sea válida
                     if (selectedPosition != AdapterView.INVALID_POSITION && selectedPosition < generosList.size()) {
                         Genero selectedGenero = generosList.get(selectedPosition);
 
-                        // Crear el Intent para MovieSearchResultActivity
                         Intent intent = new Intent(getActivity(), MovieSearchResultActivity.class);
 
-                        // Pasar los datos como extras
                         intent.putExtra("year", date);
                         intent.putExtra("genreId", selectedGenero.getId());
                         intent.putExtra("genreName", selectedGenero.getNombre());
 
-                        // Iniciar la actividad
                         startActivity(intent);
 
                     } else {
@@ -103,8 +94,7 @@ public class SearchFragment extends Fragment {
     }
 
     private void getGenres() {
-        // Llamar a la API para obtener los géneros
-        Call<GeneroResponse> call = tmdbApiService.getGenres("es-ES");
+        Call<GeneroResponse> call = ApiService.getGenres("es-ES");
         call.enqueue(new Callback<GeneroResponse>() {
             @Override
             public void onResponse(Call<GeneroResponse> call, Response<GeneroResponse> response) {
@@ -115,7 +105,6 @@ public class SearchFragment extends Fragment {
                         generoNames.add(genero.getNombre());
                     }
 
-                    // Configurar el adaptador para el spinner
                     ArrayAdapter<String> adapter = new ArrayAdapter<>(requireContext(),
                             android.R.layout.simple_spinner_item,
                             generoNames

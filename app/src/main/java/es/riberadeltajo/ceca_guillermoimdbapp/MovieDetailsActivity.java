@@ -40,11 +40,11 @@ public class MovieDetailsActivity extends AppCompatActivity {
 
     private Movie pelicula;
     private TextView textViewTitulo,textViewDescripcion,textViewDate;
-    private IMDBApiService imdbApiService;
+    private IMDBApiService ApiService;
     private ImageView imagen;
     private static final int REQUEST_CODE_PERMISSIONS = 100;
     private static final int PICK_CONTACT_REQUEST = 1;
-    private String selectedPhoneNumber;
+    private String numeroTelefono;
     private String movieRating;
 
     private final ActivityResultLauncher<Intent> pickContact =
@@ -56,7 +56,7 @@ public class MovieDetailsActivity extends AppCompatActivity {
                     Cursor cursor = getContentResolver().query(contactUri, projection, null, null, null);
                     if (cursor != null && cursor.moveToFirst()) {
                         int columnIndex = cursor.getColumnIndex(ContactsContract.CommonDataKinds.Phone.NUMBER);
-                        selectedPhoneNumber = cursor.getString(columnIndex);
+                        numeroTelefono = cursor.getString(columnIndex);
                         cursor.close();
                         openSmsApp();
                     }
@@ -107,9 +107,9 @@ public class MovieDetailsActivity extends AppCompatActivity {
                 .addConverterFactory(GsonConverterFactory.create())
                 .build();
 
-        imdbApiService = retrofit.create(IMDBApiService.class);
+        ApiService = retrofit.create(IMDBApiService.class);
 
-        Call<MovieOverviewResponse> call = imdbApiService.obtenerDatos(pelicula.getId());
+        Call<MovieOverviewResponse> call = ApiService.obtenerDatos(pelicula.getId());
         call.enqueue(new Callback<MovieOverviewResponse>() {
             @Override
             public void onResponse(Call<MovieOverviewResponse> call, Response<MovieOverviewResponse> response) {
@@ -125,8 +125,8 @@ public class MovieDetailsActivity extends AppCompatActivity {
 
                     MovieOverviewResponse.RatingsSummary ratingsSummary = response.body().getData().getTitle().getRatingsSummary();
                     if (ratingsSummary != null) {
-                        movieRating = String.format("%.1f", ratingsSummary.getAggregateRating());  // Guardamos el rating
-                        Log.d("Rating", "Rating obtenido: " + movieRating);  // Añadimos un log para verificar
+                        movieRating = String.format("%.1f", ratingsSummary.getAggregateRating());
+                        Log.d("Rating", "Rating obtenido: " + movieRating);
                         TextView ratingView = findViewById(R.id.TextViewRating);
                         ratingView.setText("Rating: " + movieRating);
                     } else {
@@ -148,7 +148,7 @@ public class MovieDetailsActivity extends AppCompatActivity {
 
         Button btnSendSms = findViewById(R.id.btnSendSms);
         btnSendSms.setOnClickListener(view -> {
-            if (selectedPhoneNumber == null) {
+            if (numeroTelefono == null) {
                 Intent intent = new Intent(Intent.ACTION_PICK, ContactsContract.CommonDataKinds.Phone.CONTENT_URI);
                 pickContact.launch(intent);
             } else {
@@ -158,7 +158,6 @@ public class MovieDetailsActivity extends AppCompatActivity {
 
     }
 
-    // Verificar permisos en tiempo de ejecución
     private void checkPermissions() {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.SEND_SMS) != PackageManager.PERMISSION_GRANTED ||
                 ContextCompat.checkSelfPermission(this, Manifest.permission.READ_CONTACTS) != PackageManager.PERMISSION_GRANTED) {
@@ -170,17 +169,15 @@ public class MovieDetailsActivity extends AppCompatActivity {
 
 
     private void openSmsApp() {
-        String movieDetails = "Esta película te gustará: " + pelicula.getTitle() + "\nRating: " + movieRating;  // Usamos el rating guardado
+        String detallesPelicula = "Esta película te gustará: " + pelicula.getTitle() + "\nRating: " + movieRating;
 
-        // Intent para abrir la aplicación de SMS con el mensaje prellenado
-        if (selectedPhoneNumber != null) {
-            Intent smsIntent = new Intent(Intent.ACTION_SENDTO, Uri.parse("smsto:" + selectedPhoneNumber));
-            smsIntent.putExtra("sms_body", movieDetails);
-            startActivity(smsIntent);
+        if (numeroTelefono != null) {
+            Intent i = new Intent(Intent.ACTION_SENDTO, Uri.parse("smsto:" + numeroTelefono));
+            i.putExtra("sms_body", detallesPelicula);
+            startActivity(i);
         }
     }
 
-    // Manejo de la selección de contacto
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
@@ -191,24 +188,20 @@ public class MovieDetailsActivity extends AppCompatActivity {
             Cursor cursor = getContentResolver().query(contactUri, projection, null, null, null);
             if (cursor != null && cursor.moveToFirst()) {
                 int columnIndex = cursor.getColumnIndex(ContactsContract.CommonDataKinds.Phone.NUMBER);
-                selectedPhoneNumber = cursor.getString(columnIndex);
+                numeroTelefono = cursor.getString(columnIndex);
                 cursor.close();
-                // Después de seleccionar el contacto, abrir la aplicación de SMS
                 openSmsApp();
             }
         }
     }
 
-    // Manejo de resultados de permisos
     @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (requestCode == REQUEST_CODE_PERMISSIONS) {
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                // Permisos concedidos
                 Log.d("Permissions", "Permisos concedidos");
             } else {
-                // Permisos no concedidos
                 Log.d("Permissions", "Permisos no concedidos");
             }
         }

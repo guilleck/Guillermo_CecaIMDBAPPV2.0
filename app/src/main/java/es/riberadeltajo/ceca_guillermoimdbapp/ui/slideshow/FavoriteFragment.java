@@ -44,7 +44,6 @@ public class FavoriteFragment extends Fragment {
                     // Permisos concedidos, compartir las películas
                     shareFavorites();
                 } else {
-                    // Permiso denegado, mostrar mensaje
                     Toast.makeText(getContext(), "Permiso de Bluetooth denegado", Toast.LENGTH_SHORT).show();
                 }
             });
@@ -52,55 +51,43 @@ public class FavoriteFragment extends Fragment {
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater,
                              ViewGroup container, Bundle savedInstanceState) {
-        // Inflamos el layout
         View root = inflater.inflate(R.layout.fragment_favorite, container, false);
 
-        // Inicializamos el RecyclerView
         recyclerView = root.findViewById(R.id.recyclerViewSearch);
-        recyclerView.setLayoutManager(new GridLayoutManager(getContext(), 2));  // Cambié el LinearLayoutManager a GridLayoutManager
-
-        // Inicializamos la lista de películas y el adaptador
+        recyclerView.setLayoutManager(new GridLayoutManager(getContext(), 2));
         favoritesManager = new FavoritesManager(getContext());
         adapter = new MovieAdapter(getContext(), movieList,favoritesManager);
         recyclerView.setAdapter(adapter);
 
-
-
         adapter.setOnItemLongClickListener(movie -> {
-            // Eliminar la película de favoritos
-            favoritesManager.removeFavorite(movie); // Eliminar de favoritos
-            movieList.remove(movie); // Remover de la lista local
-            adapter.notifyDataSetChanged(); // Notificar al adaptador que se ha eliminado la película
+            favoritesManager.removeFavorite(movie);
+            movieList.remove(movie);
+            adapter.notifyDataSetChanged();
             Toast.makeText(getContext(), "Eliminada de favoritos: " + movie.getTitle(), Toast.LENGTH_SHORT).show();
         });
 
         Button shareButton = root.findViewById(R.id.btnShareFavorites);
         shareButton.setOnClickListener(v -> requestBluetoothPermissionAndShare());
 
-        // Aquí puedes cargar los favoritos desde la base de datos si es necesario
         loadFavorites();
 
         return root;
     }
 
     private void loadFavorites() {
-        // Aquí puedes cargar las películas desde la base de datos a la lista 'movieList'
         List<Movie> favorites = favoritesManager.getFavorites();
         movieList.clear();
         movieList.addAll(favorites);
         adapter.notifyDataSetChanged();
     }
     private void shareFavorites() {
-        // Usamos Gson para convertir las películas a formato JSON
         Gson gson = new Gson();
         String jsonFavorites = gson.toJson(movieList);
 
-        // Crear el Intent para compartir via Bluetooth u otras aplicaciones
         Intent intent = new Intent(Intent.ACTION_SEND);
         intent.setType("text/plain");
         intent.putExtra(Intent.EXTRA_TEXT, jsonFavorites);
 
-        // Verificar si hay una aplicación para compartir
         if (intent.resolveActivity(getActivity().getPackageManager()) != null) {
             startActivity(Intent.createChooser(intent, "Compartir lista de favoritos"));
         } else {
@@ -109,14 +96,12 @@ public class FavoriteFragment extends Fragment {
     }
     private void requestBluetoothPermissionAndShare() {
         if (ContextCompat.checkSelfPermission(getContext(), Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
-            // Si no se han concedido los permisos, solicitarlos
             ActivityCompat.requestPermissions(getActivity(), new String[]{
                     Manifest.permission.BLUETOOTH_CONNECT,
                     Manifest.permission.BLUETOOTH_SCAN,
                     Manifest.permission.BLUETOOTH_ADMIN
             }, BLUETOOTH_PERMISSION_REQUEST_CODE);
         } else {
-            // Si ya se tienen los permisos, compartir las películas
             shareFavorites();
         }
     }

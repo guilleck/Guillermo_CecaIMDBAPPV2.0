@@ -46,33 +46,26 @@ public class MainActivity extends AppCompatActivity {
         binding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
-        // Configurar Toolbar
         setSupportActionBar(binding.appBarMain.toolbar);
 
-
-        // Inicializar FirebaseAuth
         auth = FirebaseAuth.getInstance();
         googleSignInClient = GoogleSignIn.getClient(this, GoogleSignInOptions.DEFAULT_SIGN_IN);
 
-        // Verificar si hay un usuario autenticado
         FirebaseUser user = auth.getCurrentUser();
         if (user == null) {
             redirectToLogin();
             return;
         }
 
-        // Configurar Navigation Drawer
         DrawerLayout drawer = binding.drawerLayout;
         NavigationView navigationView = binding.navView;
 
-        // Obtener el header del NavigationView
         View headerView = navigationView.getHeaderView(0);
         TextView textViewNombre = headerView.findViewById(R.id.textViewNombre);
         TextView textViewEmail = headerView.findViewById(R.id.textViewEmail);
         com.google.android.material.imageview.ShapeableImageView imageViewPhoto = headerView.findViewById(R.id.imageViewPhoto);
         Button logoutButton = headerView.findViewById(R.id.buttonLogout);
 
-        // Configurar nombre, email y foto del usuario
         textViewNombre.setText(user.getDisplayName());
         textViewEmail.setText(user.getEmail());
 
@@ -82,12 +75,10 @@ public class MainActivity extends AppCompatActivity {
                     .into(imageViewPhoto);
         }
 
-        // Configurar botón de logout
         logoutButton.setOnClickListener(v -> {
             signOut();
         });
 
-        // Configurar NavController
         NavController navController = Navigation.findNavController(this, R.id.nav_host_fragment_content_main);
         mAppBarConfiguration = new AppBarConfiguration.Builder(
                 R.id.nav_home, R.id.nav_search, R.id.nav_buscar)
@@ -107,8 +98,6 @@ public class MainActivity extends AppCompatActivity {
             }
             return true;
         });
-
-
     }
 
     @Override
@@ -124,23 +113,16 @@ public class MainActivity extends AppCompatActivity {
                 || super.onSupportNavigateUp();
     }
 
-    /**
-     * Método para cerrar sesión y redirigir al LoginActivity.
-     */
+
     private void signOut() {
-        // Cerrar sesión en FirebaseAuth
         auth.signOut();
 
-        // Cerrar sesión en Google
         googleSignInClient.signOut().addOnCompleteListener(this, task -> {
             Toast.makeText(MainActivity.this, "Sesión cerrada", Toast.LENGTH_SHORT).show();
             redirectToLogin();
         });
     }
 
-    /**
-     * Redirige al LoginActivity y limpia la pila de actividades.
-     */
     private void redirectToLogin() {
         Intent intent = new Intent(MainActivity.this, LoginActivity.class);
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);

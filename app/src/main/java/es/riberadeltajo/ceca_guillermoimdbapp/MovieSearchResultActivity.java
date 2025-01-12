@@ -34,7 +34,7 @@ public class MovieSearchResultActivity extends AppCompatActivity {
     private MovieAdapter movieAdapter;
     private TextView yearTextView, genreTextView;
     private FavoritesManager favoritesManager;
-    private static final String TMDB_API_KEY = "eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiI5NmI0NWY5MmNkYWNhZjY3NDFlNWVmMTA1MzY1MDkwNyIsIm5iZiI6MTczNjUzOTExMS4zNDUsInN1YiI6IjY3ODE3YmU3Mzg4MWM3OTQxOWJiNzcxNyIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.yNCqvMpnCqFwGPCHxfoSA1sO_8boWww7SRYrpeEsWJ0"; // Asegúrate de usar tu clave de API.
+    private static final String API_KEY = "eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiI5NmI0NWY5MmNkYWNhZjY3NDFlNWVmMTA1MzY1MDkwNyIsIm5iZiI6MTczNjUzOTExMS4zNDUsInN1YiI6IjY3ODE3YmU3Mzg4MWM3OTQxOWJiNzcxNyIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.yNCqvMpnCqFwGPCHxfoSA1sO_8boWww7SRYrpeEsWJ0"; // Asegúrate de usar tu clave de API.
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -60,7 +60,7 @@ public class MovieSearchResultActivity extends AppCompatActivity {
         OkHttpClient client = new OkHttpClient.Builder()
                 .addInterceptor(chain -> {
                     okhttp3.Request request = chain.request().newBuilder()
-                            .addHeader("Authorization", "Bearer " + TMDB_API_KEY)
+                            .addHeader("Authorization", "Bearer " + API_KEY)
                             .addHeader("accept", "application/json")
                             .build();
                     return chain.proceed(request);

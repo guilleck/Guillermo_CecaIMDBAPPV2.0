@@ -61,38 +61,31 @@ public class MovieAdapter extends RecyclerView.Adapter<MovieAdapter.MovieViewHol
     public void onBindViewHolder(@NonNull MovieViewHolder holder, int position) {
         Movie movie = movieList.get(position);
 
-        // Cargar la imagen del poster usando Glide
         Glide.with(context)
                 .load(movie.getPosterPath())
                 .into(holder.posterImageView);
 
-        // Listener para cuando se pulsa sobre la película
         holder.itemView.setOnClickListener(v -> {
             Intent i = new Intent(context, MovieDetailsActivity.class);
             i.putExtra("pelicula", movie);
             context.startActivity(i);
         });
-        // Cargar la imagen del poster usando Glide
         Glide.with(context)
                 .load(movie.getPosterPath())
                 .into(holder.posterImageView);
 
         holder.itemView.setOnLongClickListener(v -> {
             if (isMovieInFavorites(movie)) {
-                // Si la película está en favoritos, la eliminamos
                 favoritesManager.removeFavorite(movie);
-                movieList.remove(position);  // Eliminar de la lista
-                notifyItemRemoved(position);  // Notificar al adaptador
+                movieList.remove(position);
+                notifyItemRemoved(position);
                 Toast.makeText(context, "Eliminada de favoritos: " + movie.getTitle(), Toast.LENGTH_SHORT).show();
             } else {
-                // Si la película no está en favoritos, la agregamos
                 favoritesManager.addFavorite(movie);
                 Toast.makeText(context, "Agregada a favoritos: " + movie.getTitle(), Toast.LENGTH_SHORT).show();
             }
-            return true;  // El evento fue manejado
+            return true;
         });
-
-
     }
 
     @Override

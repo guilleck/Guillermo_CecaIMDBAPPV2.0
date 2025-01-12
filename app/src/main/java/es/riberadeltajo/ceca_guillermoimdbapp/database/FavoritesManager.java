@@ -17,13 +17,12 @@ public class FavoritesManager {
     private SQLiteDatabase db;
 
     public FavoritesManager(Context context) {
-        databaseHelper = new FavoritesDatabaseHelper(context); // Uso correcto de Context
+        databaseHelper = new FavoritesDatabaseHelper(context);
     }
 
     public void addFavorite(Movie movie) {
         SQLiteDatabase db = databaseHelper.getWritableDatabase();
 
-        // Insertar la película en la base de datos
         ContentValues values = new ContentValues();
         values.put(FavoritesDatabaseHelper.COLUMN_ID, movie.getId());
         values.put(FavoritesDatabaseHelper.COLUMN_TITLE, movie.getTitle());
@@ -34,10 +33,7 @@ public class FavoritesManager {
         long result = db.insert(FavoritesDatabaseHelper.TABLE_FAVORITES, null, values);
         db.close();
 
-
     }
-
-
 
     @SuppressLint("Range")
     public List<Movie> getFavorites() {

@@ -17,7 +17,7 @@ public class TMDBMovie {
     private boolean video;
     private double vote_average;
     private int vote_count;
-    // Getters y Setters
+
     public boolean isAdult() {
         return adult;
     }
