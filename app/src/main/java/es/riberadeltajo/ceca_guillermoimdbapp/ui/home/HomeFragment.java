@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import es.riberadeltajo.ceca_guillermoimdbapp.adapters.MovieAdapter;
+import es.riberadeltajo.ceca_guillermoimdbapp.api.IMDBApiClient;
 import es.riberadeltajo.ceca_guillermoimdbapp.api.IMDBApiService;
 import es.riberadeltajo.ceca_guillermoimdbapp.database.FavoritesDatabaseHelper;
 import es.riberadeltajo.ceca_guillermoimdbapp.database.FavoritesManager;
@@ -44,6 +45,8 @@ public class HomeFragment extends Fragment {
     private RecyclerView recyclerView;
     private FavoritesDatabaseHelper databaseHelper;
     private FavoritesManager favoritesManager;
+    private IMDBApiClient imdbApiClient;
+
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater,
@@ -59,10 +62,12 @@ public class HomeFragment extends Fragment {
         adapter = new MovieAdapter(getContext(), movieList,favoritesManager);
         recyclerView.setAdapter(adapter);
 
+        String apiKey = IMDBApiClient.getApiKey();
+        Log.d("HomeFragment", "Clave API inicial: " + apiKey);
         OkHttpClient client = new OkHttpClient.Builder()
                 .addInterceptor(chain -> {
                     Request modifiedRequest = chain.request().newBuilder()
-                            .addHeader("X-RapidAPI-Key", "9c478d1de5msh0376a3e3aa6209ep161637jsn5be10011fc93")
+                            .addHeader("X-RapidAPI-Key", apiKey)
                             .addHeader("X-RapidAPI-Host", "imdb-com.p.rapidapi.com")
                             .build();
                     return chain.proceed(modifiedRequest);
@@ -72,15 +77,9 @@ public class HomeFragment extends Fragment {
                 .build();
 
 
-        Retrofit retrofit = new Retrofit.Builder()
-                .baseUrl("https://imdb-com.p.rapidapi.com/")
-                .client(client)
-                .addConverterFactory(GsonConverterFactory.create())
-                .build();
 
-        ApiService = retrofit.create(IMDBApiService.class);
-
-        Call<PopularMoviesResponse> call = ApiService.obtenerTop10("US");
+        Call<PopularMoviesResponse> call = IMDBApiClient.getApiService().obtenerTop10("US");
+        Log.d("HomeFragment", "Usando clave API: " + IMDBApiClient.getApiKey());
         call.enqueue(new Callback<PopularMoviesResponse>() {
             @Override
             public void onResponse(Call<PopularMoviesResponse> call, Response<PopularMoviesResponse> response) {
@@ -100,6 +99,10 @@ public class HomeFragment extends Fragment {
                         }
                         adapter.notifyDataSetChanged();
                     }
+                }else if(response.code() == 429){
+                    Log.e("HomeFragment", "Límite de solicitudes alcanzado. Cambiando API Key.");
+                    IMDBApiClient.switchApiKey(); // Cambiar a la siguiente clave API
+                    fetchMovies();
                 }
             }
 
@@ -119,10 +122,47 @@ public class HomeFragment extends Fragment {
         return root;
     }
 
+    private void fetchMovies() {
+        Call<PopularMoviesResponse> call = IMDBApiClient.getApiService().obtenerTop10("US");
+        call.enqueue(new Callback<PopularMoviesResponse>() {
+            @Override
+            public void onResponse(Call<PopularMoviesResponse> call, Response<PopularMoviesResponse> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    List<PopularMoviesResponse.Edge> edges = response.body().getData().getTopMeterTitles().getEdges();
+                    if (edges != null && !edges.isEmpty()) {
+                        movieList.clear();
+                        for (int i = 0; i < Math.min(edges.size(), 10); i++) {
+                            PopularMoviesResponse.Edge edge = edges.get(i);
+                            PopularMoviesResponse.Node node = edge.getNode();
+                            Movie movie = new Movie();
+                            movie.setId(node.getId());
+                            movie.setTitle(node.getTitleText().getText());
+                            movie.setPosterPath(node.getPrimaryImage().getUrl());
+                            movieList.add(movie);
+                        }
+                        adapter.notifyDataSetChanged();
+                    }
+                }
+            }
+
+            @Override
+            public void onFailure(Call<PopularMoviesResponse> call, Throwable t) {
+                Log.e("HomeFragment", "Error en la llamada API: " + t.getMessage());
+            }
+        });
+    }
 
     @Override
     public void onDestroyView() {
         super.onDestroyView();
         binding = null;
     }
-}
+
+    }
+
+
+
+
+
+
+
