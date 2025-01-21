@@ -10,6 +10,8 @@
     <string name="movie_poster">Movie Poster</string>
     <string name="menu_gallery">Gallery</string>
     <string name="menu_slideshow">Slideshow</string>
+    <string name="facebook_app_id">966565114940509</string>
+
 
     <string-array name="movie_genres">
         <item>Acción</item>

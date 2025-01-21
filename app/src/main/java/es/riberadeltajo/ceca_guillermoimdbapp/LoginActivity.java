@@ -22,6 +22,14 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
+import com.facebook.AccessToken;
+import com.facebook.CallbackManager;
+import com.facebook.FacebookCallback;
+import com.facebook.FacebookException;
+import com.facebook.FacebookSdk;
+import com.facebook.appevents.AppEventsLogger;
+import com.facebook.login.LoginResult;
+import com.facebook.login.widget.LoginButton;
 
 import com.bumptech.glide.Glide;
 import com.google.android.gms.auth.api.identity.BeginSignInRequest;
@@ -40,14 +48,33 @@ import com.google.android.material.imageview.ShapeableImageView;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.auth.AuthCredential;
 import com.google.firebase.auth.AuthResult;
+import com.google.firebase.auth.FacebookAuthProvider;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.auth.GoogleAuthProvider;
+import com.google.gson.Gson;
+
+import java.util.Arrays;
+import java.util.concurrent.TimeUnit;
+
+import es.riberadeltajo.ceca_guillermoimdbapp.api.FacebookApiService;
+import es.riberadeltajo.ceca_guillermoimdbapp.models.FacebookTokenManager;
+import es.riberadeltajo.ceca_guillermoimdbapp.models.UserProfile;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
+import retrofit2.Retrofit;
+import retrofit2.converter.gson.GsonConverterFactory;
 
 public class LoginActivity extends AppCompatActivity {
     private FirebaseAuth auth;
     private GoogleSignInClient googleSignInClient;
     private SignInButton signInButton;
+    private LoginButton buttonFacebook;
+    private CallbackManager callbackManager;
+    private FacebookTokenManager tokenManager;
 
     private final ActivityResultLauncher<Intent> activityResultLauncher = registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(),
@@ -83,11 +110,19 @@ public class LoginActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+        FacebookSdk.sdkInitialize(getApplicationContext());
+        AppEventsLogger.activateApp(this.getApplication());
+
+        // Inicializar Firebase
+        FirebaseApp.initializeApp(this);
+
         auth = FirebaseAuth.getInstance();
         if (auth.getCurrentUser() != null) {
             navegarMainActivity();
             return;
         }
+        tokenManager = FacebookTokenManager.getInstance(this);
+
 
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_login);
@@ -116,8 +151,95 @@ public class LoginActivity extends AppCompatActivity {
                 activityResultLauncher.launch(signInIntent);
             }
         });
+
+        callbackManager = CallbackManager.Factory.create();
+        buttonFacebook = findViewById(R.id.buttonFacebook);
+        buttonFacebook.setPermissions(Arrays.asList("email", "public_profile"));
+
+        buttonFacebook.registerCallback(callbackManager, new FacebookCallback<LoginResult>() {
+            @Override
+            public void onSuccess(LoginResult loginResult) {
+                handleFacebookAccessToken(loginResult.getAccessToken());
+            }
+
+            @Override
+            public void onCancel() {
+                Toast.makeText(LoginActivity.this, "Inicio de sesión con Facebook cancelado", Toast.LENGTH_SHORT).show();
+            }
+
+            @Override
+            public void onError(FacebookException error) {
+                Toast.makeText(LoginActivity.this, "Error al iniciar sesión con Facebook", Toast.LENGTH_SHORT).show();
+            }
+        });
+
+    }
+    @SuppressLint("RestrictedApi")
+    private void handleFacebookAccessToken(AccessToken token) {
+        AuthCredential credential = FacebookAuthProvider.getCredential(token.getToken());
+        auth.signInWithCredential(credential)
+                .addOnCompleteListener(this, task -> {
+                    if (task.isSuccessful()) {
+                        Toast.makeText(LoginActivity.this, "Sesión iniciada con Facebook", Toast.LENGTH_SHORT).show();
+                        // Guardar el token de acceso de Facebook de manera segura
+                        tokenManager.setAccessToken(token.getToken());
+                        // Opcional: Realizar llamadas a la API de Facebook
+                        fetchFacebookUserProfile();
+                        navegarMainActivity();
+                    } else {
+                        Toast.makeText(LoginActivity.this, "Error al autenticar con Facebook", Toast.LENGTH_SHORT).show();
+                    }
+                });
     }
 
+    private void fetchFacebookUserProfile() {
+        String accessToken = tokenManager.getAccessToken();
+        if (accessToken == null) {
+            return;
+        }
+
+        // Configuración de Retrofit para la API de Facebook
+        OkHttpClient client = new OkHttpClient.Builder()
+                .addInterceptor(chain -> {
+                    Request originalRequest = chain.request();
+                    Request modifiedRequest = originalRequest.newBuilder()
+                            .addHeader("Authorization", "Bearer " + accessToken)
+                            .build();
+                    return chain.proceed(modifiedRequest);
+                })
+                .connectTimeout(30, TimeUnit.SECONDS)
+                .readTimeout(30, TimeUnit.SECONDS)
+                .build();
+
+        Retrofit retrofit = new Retrofit.Builder()
+                .baseUrl("https://graph.facebook.com/v12.0/") // Asegúrate de usar la versión correcta de la API
+                .client(client)
+                .addConverterFactory(GsonConverterFactory.create())
+                .build();
+
+        FacebookApiService apiService = retrofit.create(FacebookApiService.class);
+        Call<UserProfile> call = apiService.getUserProfile("id,name,email,picture");
+        call.enqueue(new Callback<UserProfile>() {
+            @Override
+            public void onResponse(Call<UserProfile> call, Response<UserProfile> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    UserProfile profile = response.body();
+                    // Aquí puedes manejar el perfil del usuario como desees
+                }
+            }
+
+            @Override
+            public void onFailure(Call<UserProfile> call, Throwable t) {
+
+            }
+        });
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        callbackManager.onActivityResult(requestCode, resultCode, data);
+    }
 
     private void navegarMainActivity() {
         Intent intent = new Intent(LoginActivity.this, MainActivity.class);

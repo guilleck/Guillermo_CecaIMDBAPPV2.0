@@ -62,20 +62,6 @@ public class HomeFragment extends Fragment {
         adapter = new MovieAdapter(getContext(), movieList,favoritesManager);
         recyclerView.setAdapter(adapter);
 
-        String apiKey = IMDBApiClient.getApiKey();
-        Log.d("HomeFragment", "Clave API inicial: " + apiKey);
-        OkHttpClient client = new OkHttpClient.Builder()
-                .addInterceptor(chain -> {
-                    Request modifiedRequest = chain.request().newBuilder()
-                            .addHeader("X-RapidAPI-Key", apiKey)
-                            .addHeader("X-RapidAPI-Host", "imdb-com.p.rapidapi.com")
-                            .build();
-                    return chain.proceed(modifiedRequest);
-                })
-                .connectTimeout(30, TimeUnit.SECONDS)
-                .readTimeout(30, TimeUnit.SECONDS)
-                .build();
-
 
 
         Call<PopularMoviesResponse> call = IMDBApiClient.getApiService().obtenerTop10("US");

@@ -46,11 +46,15 @@ dependencies {
     implementation(libs.navigation.ui)
     implementation(libs.firebase.auth)
     implementation(libs.activity)
+    implementation(libs.security.crypto)
     testImplementation(libs.junit)
     androidTestImplementation(libs.ext.junit)
     androidTestImplementation(libs.espresso.core)
-    implementation ("com.facebook.android:facebook-login:[16.0.0]")
+    implementation ("com.facebook.android:facebook-android-sdk:16.1.2")
+    implementation ("com.facebook.android:facebook-login:16.1.2")
+    implementation ("com.google.firebase:firebase-auth")
     implementation("com.github.bumptech.glide:glide:4.16.0")
+    implementation (platform("com.google.firebase:firebase-bom:33.6.0"))
     implementation(platform("com.google.firebase:firebase-bom:32.8.0"))
     implementation ("com.google.android.gms:play-services-auth:20.5.0")
     implementation ("com.google.firebase:firebase-auth:22.1.1")
@@ -59,6 +63,8 @@ dependencies {
     implementation ("com.squareup.retrofit2:retrofit:2.9.0")
     implementation ("com.squareup.retrofit2:converter-gson:2.9.0")
     implementation ("com.google.code.gson:gson:2.8.8")
+    implementation ("com.google.firebase:firebase-auth")
+    implementation ("com.google.firebase:firebase-firestore")
 
 
 

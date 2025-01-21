@@ -9,6 +9,7 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.facebook.login.LoginManager;
 import com.google.android.gms.auth.api.signin.GoogleSignIn;
 import com.google.android.gms.auth.api.signin.GoogleSignInClient;
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
@@ -18,6 +19,7 @@ import com.google.android.material.snackbar.Snackbar;
 import com.google.android.material.navigation.NavigationView;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.auth.UserInfo;
 
 import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
@@ -66,9 +68,18 @@ public class MainActivity extends AppCompatActivity {
         com.google.android.material.imageview.ShapeableImageView imageViewPhoto = headerView.findViewById(R.id.imageViewPhoto);
         Button logoutButton = headerView.findViewById(R.id.buttonLogout);
 
-        textViewNombre.setText(user.getDisplayName());
-        textViewEmail.setText(user.getEmail());
 
+        String providerId = getProviderId(user);
+        if ("google.com".equals(providerId)) {
+            textViewNombre.setText(user.getDisplayName());
+            textViewEmail.setText(user.getEmail());
+        } else if ("facebook.com".equals(providerId)) {
+            textViewNombre.setText(user.getDisplayName());
+            textViewEmail.setText("Conectado con Facebook");
+        } else {
+            textViewNombre.setText(user.getDisplayName());
+            textViewEmail.setText(user.getEmail());
+        }
         if (user.getPhotoUrl() != null) {
             Glide.with(this)
                     .load(user.getPhotoUrl())
@@ -112,15 +123,43 @@ public class MainActivity extends AppCompatActivity {
         return NavigationUI.navigateUp(navController, mAppBarConfiguration)
                 || super.onSupportNavigateUp();
     }
-
+    private String getProviderId(FirebaseUser user) {
+        for (UserInfo userInfo : user.getProviderData()) {
+            String provider = userInfo.getProviderId();
+            if ("google.com".equals(provider)) {
+                return "google.com";
+            } else if ("facebook.com".equals(provider)) {
+                return "facebook.com";
+            }
+        }
+        return "unknown";
+    }
 
     private void signOut() {
-        auth.signOut();
+        FirebaseUser user = auth.getCurrentUser();
+        if (user != null) {
+            String providerId = getProviderId(user);
 
-        googleSignInClient.signOut().addOnCompleteListener(this, task -> {
-            Toast.makeText(MainActivity.this, "Sesión cerrada", Toast.LENGTH_SHORT).show();
+            if ("google.com".equals(providerId)) {
+                // Cerrar sesión de Google
+                googleSignInClient.signOut().addOnCompleteListener(this, task -> {
+                    Toast.makeText(MainActivity.this, "Sesión cerrada en Google", Toast.LENGTH_SHORT).show();
+                    redirectToLogin();
+                });
+            } else if ("facebook.com".equals(providerId)) {
+                // Cerrar sesión de Facebook
+                LoginManager.getInstance().logOut();
+                auth.signOut(); // Asegurarse de cerrar sesión en Firebase también
+                Toast.makeText(MainActivity.this, "Sesión cerrada en Facebook", Toast.LENGTH_SHORT).show();
+                redirectToLogin();
+            } else {
+                // Cerrar sesión de otros proveedores o anónimos
+                auth.signOut();
+                redirectToLogin();
+            }
+        } else {
             redirectToLogin();
-        });
+        }
     }
 
     private void redirectToLogin() {
