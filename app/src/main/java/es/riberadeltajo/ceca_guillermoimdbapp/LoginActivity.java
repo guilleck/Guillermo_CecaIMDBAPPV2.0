@@ -1,3 +1,4 @@
+
 package es.riberadeltajo.ceca_guillermoimdbapp;
 
 import static androidx.fragment.app.FragmentManager.TAG;
@@ -110,8 +111,9 @@ public class LoginActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+        FacebookSdk.setApplicationId(getString(R.string.facebook_app_id));
+        FacebookSdk.setClientToken(getString(R.string.facebook_client_token));
         FacebookSdk.sdkInitialize(getApplicationContext());
-        AppEventsLogger.activateApp(this.getApplication());
 
         // Inicializar Firebase
         FirebaseApp.initializeApp(this);
@@ -174,23 +176,33 @@ public class LoginActivity extends AppCompatActivity {
         });
 
     }
-    @SuppressLint("RestrictedApi")
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        callbackManager.onActivityResult(requestCode, resultCode, data);
+    }
+
     private void handleFacebookAccessToken(AccessToken token) {
+        if (token == null || token.isExpired()) {
+            Toast.makeText(this, "Token de Facebook no válido o expirado", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
         AuthCredential credential = FacebookAuthProvider.getCredential(token.getToken());
         auth.signInWithCredential(credential)
                 .addOnCompleteListener(this, task -> {
                     if (task.isSuccessful()) {
                         Toast.makeText(LoginActivity.this, "Sesión iniciada con Facebook", Toast.LENGTH_SHORT).show();
-                        // Guardar el token de acceso de Facebook de manera segura
-                        tokenManager.setAccessToken(token.getToken());
-                        // Opcional: Realizar llamadas a la API de Facebook
-                        fetchFacebookUserProfile();
                         navegarMainActivity();
                     } else {
-                        Toast.makeText(LoginActivity.this, "Error al autenticar con Facebook", Toast.LENGTH_SHORT).show();
+                        Log.e("FacebookAuthError", "Error al autenticar con Facebook", task.getException());
+                        Toast.makeText(LoginActivity.this, "Error al autenticar con Facebook: " + task.getException().getMessage(), Toast.LENGTH_LONG).show();
+                        navegarMainActivity();
                     }
                 });
     }
+
 
     private void fetchFacebookUserProfile() {
         String accessToken = tokenManager.getAccessToken();
@@ -224,7 +236,6 @@ public class LoginActivity extends AppCompatActivity {
             public void onResponse(Call<UserProfile> call, Response<UserProfile> response) {
                 if (response.isSuccessful() && response.body() != null) {
                     UserProfile profile = response.body();
-                    // Aquí puedes manejar el perfil del usuario como desees
                 }
             }
 
@@ -234,16 +245,11 @@ public class LoginActivity extends AppCompatActivity {
             }
         });
     }
-
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        callbackManager.onActivityResult(requestCode, resultCode, data);
-    }
-
     private void navegarMainActivity() {
         Intent intent = new Intent(LoginActivity.this, MainActivity.class);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         startActivity(intent);
         finish();
     }
+
 }

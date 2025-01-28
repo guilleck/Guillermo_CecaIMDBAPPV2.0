@@ -1,3 +1,4 @@
+
 package es.riberadeltajo.ceca_guillermoimdbapp.models;
 
 public class UserProfile {
@@ -16,7 +17,7 @@ public class UserProfile {
         public static class Data {
             private String url;
 
-            // Getters y Setters
+
         }
     }
 }

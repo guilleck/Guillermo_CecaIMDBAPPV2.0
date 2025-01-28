@@ -1,3 +1,4 @@
+
 package es.riberadeltajo.ceca_guillermoimdbapp.models;
 
 import android.content.Context;
@@ -10,7 +11,7 @@ import java.security.GeneralSecurityException;
 
 public class FacebookTokenManager {
     private static final String PREFS_FILENAME = "secure_prefs";
-    private static final String ACCESS_TOKEN_KEY = "EAANvFfpUDF0BO2crsZALoLeZC0ciAVHjPijC6wY7V2k6D1J5mO1WmRlUMUTNd30yeQ766M5zYpqsvE7pzKnkVJc5eUltRM08QkWT3CjvxKHFwOY9qjFjYDDOs4ETkpKZCemQ4rswpE8jLtMCPaoDgpe6g5IKMo6ievrSeyJIM6grDwFgb9YMVmRoNUdGOmQVKq2S10UV5loC0KspNUtZCm5X7AZDZD";
+    private static final String ACCESS_TOKEN_KEY = "EAANvFfpUDF0BO9xZCzhj6vtkLJwUgdxFRZCBQNurXZCShFfAx5G1I0C8pgj2D8cZBSkEudQ5XGQ3HA3JJdNZBLDsNfUgqBWDAVLB4ZBOOMZA19ZBJILGzAXTl1mf3o2kaKxk80YGHzkzXa8tWHOY3kwtfkq6Rzpq1iBdV4K6PBYtqiEDCYW4t7vIM9s0geTT1pfHG3TcM4LMzvcMIqPULdtHIe87pwZDZD";
     private static FacebookTokenManager instance;
     private SharedPreferences sharedPreferences;
 
