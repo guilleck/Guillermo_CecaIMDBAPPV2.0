@@ -21,6 +21,9 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.auth.UserInfo;
 
+import androidx.annotation.NonNull;
+import androidx.lifecycle.DefaultLifecycleObserver;
+import androidx.lifecycle.LifecycleOwner;
 import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
 import androidx.navigation.ui.AppBarConfiguration;
@@ -29,8 +32,14 @@ import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
+import java.util.Locale;
+
+import es.riberadeltajo.ceca_guillermoimdbapp.database.FavoritesDatabaseHelper;
 import es.riberadeltajo.ceca_guillermoimdbapp.databinding.ActivityMainBinding;
+import es.riberadeltajo.ceca_guillermoimdbapp.utils.AppLifecycleManager;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
@@ -54,9 +63,10 @@ public class MainActivity extends AppCompatActivity {
         googleSignInClient = GoogleSignIn.getClient(this, GoogleSignInOptions.DEFAULT_SIGN_IN);
 
         FirebaseUser user = auth.getCurrentUser();
-        if (user == null) {
-            redirectToLogin();
-            return;
+        if(user != null){
+            registrarLastLogin(user);
+        }else{
+           redirectToLogin();
         }
 
         DrawerLayout drawer = binding.drawerLayout;
@@ -109,6 +119,31 @@ public class MainActivity extends AppCompatActivity {
             }
             return true;
         });
+
+        AppLifecycleManager appLifecycleManager = new AppLifecycleManager(MainActivity.this);
+
+        // Registra los métodos del ciclo de vida
+        getLifecycle().addObserver(new DefaultLifecycleObserver() {
+            @Override
+            public void onStart(@NonNull LifecycleOwner owner) {
+                appLifecycleManager.onActivityStarted(MainActivity.this);
+            }
+
+            @Override
+            public void onStop(@NonNull LifecycleOwner owner) {
+                appLifecycleManager.onActivityStopped(MainActivity.this);
+            }
+
+            @Override
+            public void onResume(@NonNull LifecycleOwner owner) {
+                appLifecycleManager.onActivityResumed(MainActivity.this);
+            }
+
+            @Override
+            public void onPause(@NonNull LifecycleOwner owner) {
+                appLifecycleManager.onActivityPaused(MainActivity.this);
+            }
+        });
     }
 
     @Override
@@ -137,17 +172,24 @@ public class MainActivity extends AppCompatActivity {
 
     private void signOut() {
         FirebaseUser user = auth.getCurrentUser();
+
         if (user != null) {
             String providerId = getProviderId(user);
+            String ID = user.getUid();
+            String fechaLogout = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(new Date());
+            FavoritesDatabaseHelper dbHelper = new FavoritesDatabaseHelper(MainActivity.this);
+            dbHelper.updateLastLogout(ID, fechaLogout);
+
 
             if ("google.com".equals(providerId)) {
-                // Cerrar sesión de Google
+
                 googleSignInClient.signOut().addOnCompleteListener(this, task -> {
                     Toast.makeText(MainActivity.this, "Sesión cerrada en Google", Toast.LENGTH_SHORT).show();
                     redirectToLogin();
+
                 });
             } else if ("facebook.com".equals(providerId)) {
-                // Cerrar sesión de Facebook
+
                 LoginManager.getInstance().logOut();
                 auth.signOut(); // Asegurarse de cerrar sesión en Firebase también
                 Toast.makeText(MainActivity.this, "Sesión cerrada en Facebook", Toast.LENGTH_SHORT).show();
@@ -160,6 +202,23 @@ public class MainActivity extends AppCompatActivity {
         } else {
             redirectToLogin();
         }
+    }
+    private void registrarLastLogin(FirebaseUser user) {
+        String userId = user.getUid();
+        String name = user.getDisplayName();
+        String email = user.getEmail();
+        String fechaLogin = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(new Date());
+
+        FavoritesDatabaseHelper dbHelper = new FavoritesDatabaseHelper(this);
+
+        // Insertar o actualizar el último inicio de sesión
+        dbHelper.insertOrUpdateUser(
+                userId,
+                name,
+                email,
+                fechaLogin,
+                null  // last_logout permanece null porque no se ha cerrado la sesión
+        );
     }
 
     private void redirectToLogin() {

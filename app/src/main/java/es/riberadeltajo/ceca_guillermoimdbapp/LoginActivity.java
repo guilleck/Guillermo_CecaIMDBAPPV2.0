@@ -4,8 +4,11 @@ package es.riberadeltajo.ceca_guillermoimdbapp;
 import static androidx.fragment.app.FragmentManager.TAG;
 
 import android.annotation.SuppressLint;
+import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.os.UserManager;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
@@ -29,6 +32,7 @@ import com.facebook.FacebookCallback;
 import com.facebook.FacebookException;
 import com.facebook.FacebookSdk;
 import com.facebook.appevents.AppEventsLogger;
+import com.facebook.login.LoginBehavior;
 import com.facebook.login.LoginResult;
 import com.facebook.login.widget.LoginButton;
 
@@ -55,10 +59,14 @@ import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.auth.GoogleAuthProvider;
 import com.google.gson.Gson;
 
+import java.text.SimpleDateFormat;
 import java.util.Arrays;
+import java.util.Date;
+import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 
 import es.riberadeltajo.ceca_guillermoimdbapp.api.FacebookApiService;
+import es.riberadeltajo.ceca_guillermoimdbapp.database.FavoritesDatabaseHelper;
 import es.riberadeltajo.ceca_guillermoimdbapp.models.FacebookTokenManager;
 import es.riberadeltajo.ceca_guillermoimdbapp.models.UserProfile;
 import okhttp3.OkHttpClient;
@@ -93,7 +101,16 @@ public class LoginActivity extends AppCompatActivity {
                                 public void onComplete(@NonNull Task<AuthResult> task) {
                                     if (task.isSuccessful()) {
                                         Toast.makeText(LoginActivity.this, "Sesión iniciada con éxito", Toast.LENGTH_SHORT).show();
-                                        navegarMainActivity();
+                                        FirebaseUser user = auth.getCurrentUser();
+                                        if (user != null) {
+                                            String userID = user.getUid();
+                                            String nombre = user.getDisplayName();
+                                            String email = user.getEmail();
+
+                                            registrarLastLogin(userID,nombre,email);
+
+                                            navegarMainActivity();
+                                        }
                                     } else {
                                         Toast.makeText(LoginActivity.this, "Error al iniciar sesión", Toast.LENGTH_SHORT).show();
                                     }
@@ -156,6 +173,7 @@ public class LoginActivity extends AppCompatActivity {
 
         callbackManager = CallbackManager.Factory.create();
         buttonFacebook = findViewById(R.id.buttonFacebook);
+        buttonFacebook.setLoginBehavior(LoginBehavior.NATIVE_WITH_FALLBACK);
         buttonFacebook.setPermissions(Arrays.asList("email", "public_profile"));
 
         buttonFacebook.registerCallback(callbackManager, new FacebookCallback<LoginResult>() {
@@ -194,7 +212,17 @@ public class LoginActivity extends AppCompatActivity {
                 .addOnCompleteListener(this, task -> {
                     if (task.isSuccessful()) {
                         Toast.makeText(LoginActivity.this, "Sesión iniciada con Facebook", Toast.LENGTH_SHORT).show();
-                        navegarMainActivity();
+                        FirebaseUser user = auth.getCurrentUser();
+                        if (user != null) {
+                            String userID = user.getUid();
+                            String nombre = user.getDisplayName();
+                            String email = user.getEmail();
+
+                            registrarLastLogin(userID,nombre,email);
+
+                            navegarMainActivity();
+                        }
+
                     } else {
                         Log.e("FacebookAuthError", "Error al autenticar con Facebook", task.getException());
                         Toast.makeText(LoginActivity.this, "Error al autenticar con Facebook: " + task.getException().getMessage(), Toast.LENGTH_LONG).show();
@@ -251,5 +279,25 @@ public class LoginActivity extends AppCompatActivity {
         startActivity(intent);
         finish();
     }
+
+    private void registrarLastLogin(String userId, String name, String email) {
+        String fechaLogin = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(new Date());
+
+        FavoritesDatabaseHelper dbHelper = new FavoritesDatabaseHelper(this);
+
+        dbHelper.insertOrUpdateUser(
+                userId,
+                name,
+                email,
+                fechaLogin,
+                null
+        );
+
+        SharedPreferences preferences = getSharedPreferences("UserPrefs", Context.MODE_PRIVATE);
+        SharedPreferences.Editor editor = preferences.edit();
+        editor.putBoolean("isLoggedIn", true);
+        editor.apply();
+    }
+
 
 }
