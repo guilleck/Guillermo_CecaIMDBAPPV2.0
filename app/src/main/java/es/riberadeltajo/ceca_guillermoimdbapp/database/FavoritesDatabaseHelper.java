@@ -47,7 +47,7 @@ public class FavoritesDatabaseHelper extends SQLiteOpenHelper {
 
         String CREATE_USERS_TABLE = "CREATE TABLE " + TABLE_USERS + " (" +
                 COLUMN_USER_ID + " TEXT PRIMARY KEY, " +
-                COLUMN_NAME + " TEXT NOT NULL, " +
+                COLUMN_NAME + " TEXT , " +
                 COLUMN_EMAIL + " TEXT NOT NULL UNIQUE, " +
                 COLUMN_LAST_LOGIN + " TEXT, " +
                 COLUMN_LAST_LOGOUT + " TEXT)";

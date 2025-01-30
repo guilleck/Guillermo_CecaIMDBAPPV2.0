@@ -94,6 +94,8 @@ public class MainActivity extends AppCompatActivity {
             Glide.with(this)
                     .load(user.getPhotoUrl())
                     .into(imageViewPhoto);
+        }else{
+            imageViewPhoto.setImageResource(R.drawable.usuario);
         }
 
         logoutButton.setOnClickListener(v -> {
@@ -159,6 +161,10 @@ public class MainActivity extends AppCompatActivity {
                 || super.onSupportNavigateUp();
     }
     private String getProviderId(FirebaseUser user) {
+        if (user == null) {
+            return "unknown";
+        }
+
         for (UserInfo userInfo : user.getProviderData()) {
             String provider = userInfo.getProviderId();
             if ("google.com".equals(provider)) {
@@ -169,6 +175,7 @@ public class MainActivity extends AppCompatActivity {
         }
         return "unknown";
     }
+
 
     private void signOut() {
         FirebaseUser user = auth.getCurrentUser();

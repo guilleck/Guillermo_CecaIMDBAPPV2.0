@@ -12,6 +12,7 @@ import android.os.UserManager;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -84,6 +85,8 @@ public class LoginActivity extends AppCompatActivity {
     private LoginButton buttonFacebook;
     private CallbackManager callbackManager;
     private FacebookTokenManager tokenManager;
+    private EditText editTextEmail, editTextContraseña;
+    private Button buttonRegister, buttonLogin;
 
     private final ActivityResultLauncher<Intent> activityResultLauncher = registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(),
@@ -193,6 +196,45 @@ public class LoginActivity extends AppCompatActivity {
             }
         });
 
+        editTextEmail = findViewById(R.id.editTextEmail);
+        editTextContraseña = findViewById(R.id.editTextPassWord);
+        buttonRegister = findViewById(R.id.buttonRegister);
+        buttonLogin = findViewById(R.id.buttonLogin);
+
+        buttonRegister.setOnClickListener(v -> {
+            String email = editTextEmail.getText().toString().trim();
+            String password = editTextContraseña.getText().toString().trim();
+
+            if (email.isEmpty() || password.isEmpty()) {
+                Toast.makeText(this, "No se puede dejar ningún campo vacío", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            if(!correoCorrecto(email)){
+                Toast.makeText(LoginActivity.this,"El formato del correo no es el correcto", Toast.LENGTH_SHORT).show();
+            }
+
+
+
+
+            registrarUsuario(email, password);
+        });
+
+        buttonLogin.setOnClickListener(v -> {
+            String email = editTextEmail.getText().toString().trim();
+            String password = editTextContraseña.getText().toString().trim();
+
+            if (email.isEmpty() || password.isEmpty()) {
+                Toast.makeText(this, "No se puede dejar ningún campo vacío", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            if(!correoCorrecto(email)){
+                Toast.makeText(LoginActivity.this,"El formato del correo no es el correcto", Toast.LENGTH_SHORT).show();
+            }
+
+            iniciarSesion(email, password);
+        });
     }
 
     @Override
@@ -298,6 +340,54 @@ public class LoginActivity extends AppCompatActivity {
         editor.putBoolean("isLoggedIn", true);
         editor.apply();
     }
+
+    private void registrarUsuario(String email, String password) {
+        auth.createUserWithEmailAndPassword(email, password)
+                .addOnCompleteListener(this, task -> {
+                    if (task.isSuccessful()) {
+                        FirebaseUser user = auth.getCurrentUser();
+                        if (user != null) {
+                            String userId = user.getUid();
+                            String name = user.getDisplayName() != null ? user.getDisplayName() : "Usuario";
+                            String fechaRegistro = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(new Date());
+
+                            FavoritesDatabaseHelper dbHelper = new FavoritesDatabaseHelper(this);
+                            dbHelper.insertOrUpdateUser(userId, name, email, fechaRegistro, null);
+
+                            Toast.makeText(this, "Registro exitoso. Por favor, inicia sesión.", Toast.LENGTH_SHORT).show();
+                        }
+                    } else {
+                        Toast.makeText(this, "Error al registrar: " + task.getException().getMessage(), Toast.LENGTH_SHORT).show();
+                    }
+                });
+    }
+
+    private void iniciarSesion(String email, String password) {
+        auth.signInWithEmailAndPassword(email, password)
+                .addOnCompleteListener(this, task -> {
+                    if (task.isSuccessful()) {
+                        FirebaseUser user = auth.getCurrentUser();
+                        if (user != null) {
+                            String userId = user.getUid();
+
+                            String fechaLogin = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(new Date());
+
+                            FavoritesDatabaseHelper dbHelper = new FavoritesDatabaseHelper(this);
+                            dbHelper.updateLastLogin(userId, fechaLogin);
+
+                            navegarMainActivity();
+                        }
+                    } else {
+                        Toast.makeText(this, "Error al iniciar sesión: " + task.getException().getMessage(), Toast.LENGTH_SHORT).show();
+                    }
+                });
+    }
+
+    public boolean correoCorrecto(String correo){
+        String correoRegex = "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+.[a-zA-Z]{2,6}$";
+        return correo.matches(correoRegex);
+    }
+
 
 
 }
