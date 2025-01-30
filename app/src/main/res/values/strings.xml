@@ -8,8 +8,12 @@
     <string name="action_settings">Settings</string>
     <string name="client_id">913112871034-s586nrabu2a49bl3pgsgrl28eocg9aae.apps.googleusercontent.com</string>
     <string name="movie_poster">Movie Poster</string>
-    <string name="menu_gallery">Gallery</string>
+    <string name="menu_gallery">Favoritos</string>
     <string name="menu_slideshow">Slideshow</string>
+    <string name="facebook_app_id">966565114940509</string>
+    <string name="fb_login_protocol_scheme">fb966565114940509</string>
+    <string name="facebook_client_token">4298ad9ea0224f7a176cd086be22d242</string>
+
 
     <string-array name="movie_genres">
         <item>Acción</item>

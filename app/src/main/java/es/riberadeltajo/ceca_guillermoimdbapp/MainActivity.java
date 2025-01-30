@@ -9,6 +9,7 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.facebook.login.LoginManager;
 import com.google.android.gms.auth.api.signin.GoogleSignIn;
 import com.google.android.gms.auth.api.signin.GoogleSignInClient;
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
@@ -18,7 +19,11 @@ import com.google.android.material.snackbar.Snackbar;
 import com.google.android.material.navigation.NavigationView;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.auth.UserInfo;
 
+import androidx.annotation.NonNull;
+import androidx.lifecycle.DefaultLifecycleObserver;
+import androidx.lifecycle.LifecycleOwner;
 import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
 import androidx.navigation.ui.AppBarConfiguration;
@@ -27,8 +32,14 @@ import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
+import java.util.Locale;
+
+import es.riberadeltajo.ceca_guillermoimdbapp.database.FavoritesDatabaseHelper;
 import es.riberadeltajo.ceca_guillermoimdbapp.databinding.ActivityMainBinding;
+import es.riberadeltajo.ceca_guillermoimdbapp.utils.AppLifecycleManager;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
@@ -52,9 +63,10 @@ public class MainActivity extends AppCompatActivity {
         googleSignInClient = GoogleSignIn.getClient(this, GoogleSignInOptions.DEFAULT_SIGN_IN);
 
         FirebaseUser user = auth.getCurrentUser();
-        if (user == null) {
-            redirectToLogin();
-            return;
+        if(user != null){
+            registrarLastLogin(user);
+        }else{
+           redirectToLogin();
         }
 
         DrawerLayout drawer = binding.drawerLayout;
@@ -66,9 +78,18 @@ public class MainActivity extends AppCompatActivity {
         com.google.android.material.imageview.ShapeableImageView imageViewPhoto = headerView.findViewById(R.id.imageViewPhoto);
         Button logoutButton = headerView.findViewById(R.id.buttonLogout);
 
-        textViewNombre.setText(user.getDisplayName());
-        textViewEmail.setText(user.getEmail());
 
+        String providerId = getProviderId(user);
+        if ("google.com".equals(providerId)) {
+            textViewNombre.setText(user.getDisplayName());
+            textViewEmail.setText(user.getEmail());
+        } else if ("facebook.com".equals(providerId)) {
+            textViewNombre.setText(user.getDisplayName());
+            textViewEmail.setText("Conectado con Facebook");
+        } else {
+            textViewNombre.setText(user.getDisplayName());
+            textViewEmail.setText(user.getEmail());
+        }
         if (user.getPhotoUrl() != null) {
             Glide.with(this)
                     .load(user.getPhotoUrl())
@@ -98,6 +119,31 @@ public class MainActivity extends AppCompatActivity {
             }
             return true;
         });
+
+        AppLifecycleManager appLifecycleManager = new AppLifecycleManager(MainActivity.this);
+
+        // Registra los métodos del ciclo de vida
+        getLifecycle().addObserver(new DefaultLifecycleObserver() {
+            @Override
+            public void onStart(@NonNull LifecycleOwner owner) {
+                appLifecycleManager.onActivityStarted(MainActivity.this);
+            }
+
+            @Override
+            public void onStop(@NonNull LifecycleOwner owner) {
+                appLifecycleManager.onActivityStopped(MainActivity.this);
+            }
+
+            @Override
+            public void onResume(@NonNull LifecycleOwner owner) {
+                appLifecycleManager.onActivityResumed(MainActivity.this);
+            }
+
+            @Override
+            public void onPause(@NonNull LifecycleOwner owner) {
+                appLifecycleManager.onActivityPaused(MainActivity.this);
+            }
+        });
     }
 
     @Override
@@ -112,15 +158,67 @@ public class MainActivity extends AppCompatActivity {
         return NavigationUI.navigateUp(navController, mAppBarConfiguration)
                 || super.onSupportNavigateUp();
     }
-
+    private String getProviderId(FirebaseUser user) {
+        for (UserInfo userInfo : user.getProviderData()) {
+            String provider = userInfo.getProviderId();
+            if ("google.com".equals(provider)) {
+                return "google.com";
+            } else if ("facebook.com".equals(provider)) {
+                return "facebook.com";
+            }
+        }
+        return "unknown";
+    }
 
     private void signOut() {
-        auth.signOut();
+        FirebaseUser user = auth.getCurrentUser();
 
-        googleSignInClient.signOut().addOnCompleteListener(this, task -> {
-            Toast.makeText(MainActivity.this, "Sesión cerrada", Toast.LENGTH_SHORT).show();
+        if (user != null) {
+            String providerId = getProviderId(user);
+            String ID = user.getUid();
+            String fechaLogout = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(new Date());
+            FavoritesDatabaseHelper dbHelper = new FavoritesDatabaseHelper(MainActivity.this);
+            dbHelper.updateLastLogout(ID, fechaLogout);
+
+
+            if ("google.com".equals(providerId)) {
+
+                googleSignInClient.signOut().addOnCompleteListener(this, task -> {
+                    Toast.makeText(MainActivity.this, "Sesión cerrada en Google", Toast.LENGTH_SHORT).show();
+                    redirectToLogin();
+
+                });
+            } else if ("facebook.com".equals(providerId)) {
+
+                LoginManager.getInstance().logOut();
+                auth.signOut(); // Asegurarse de cerrar sesión en Firebase también
+                Toast.makeText(MainActivity.this, "Sesión cerrada en Facebook", Toast.LENGTH_SHORT).show();
+                redirectToLogin();
+            } else {
+                // Cerrar sesión de otros proveedores o anónimos
+                auth.signOut();
+                redirectToLogin();
+            }
+        } else {
             redirectToLogin();
-        });
+        }
+    }
+    private void registrarLastLogin(FirebaseUser user) {
+        String userId = user.getUid();
+        String name = user.getDisplayName();
+        String email = user.getEmail();
+        String fechaLogin = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(new Date());
+
+        FavoritesDatabaseHelper dbHelper = new FavoritesDatabaseHelper(this);
+
+        // Insertar o actualizar el último inicio de sesión
+        dbHelper.insertOrUpdateUser(
+                userId,
+                name,
+                email,
+                fechaLogin,
+                null  // last_logout permanece null porque no se ha cerrado la sesión
+        );
     }
 
     private void redirectToLogin() {

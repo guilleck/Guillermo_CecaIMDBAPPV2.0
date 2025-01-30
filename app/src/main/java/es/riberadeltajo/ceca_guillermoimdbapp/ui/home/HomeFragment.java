@@ -15,6 +15,9 @@ import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -62,20 +65,6 @@ public class HomeFragment extends Fragment {
         adapter = new MovieAdapter(getContext(), movieList,favoritesManager);
         recyclerView.setAdapter(adapter);
 
-        String apiKey = IMDBApiClient.getApiKey();
-        Log.d("HomeFragment", "Clave API inicial: " + apiKey);
-        OkHttpClient client = new OkHttpClient.Builder()
-                .addInterceptor(chain -> {
-                    Request modifiedRequest = chain.request().newBuilder()
-                            .addHeader("X-RapidAPI-Key", apiKey)
-                            .addHeader("X-RapidAPI-Host", "imdb-com.p.rapidapi.com")
-                            .build();
-                    return chain.proceed(modifiedRequest);
-                })
-                .connectTimeout(30, TimeUnit.SECONDS)
-                .readTimeout(30, TimeUnit.SECONDS)
-                .build();
-
 
 
         Call<PopularMoviesResponse> call = IMDBApiClient.getApiService().obtenerTop10("US");
@@ -113,7 +102,8 @@ public class HomeFragment extends Fragment {
         });
 
         adapter.setOnItemLongClickListener(movie -> {
-            favoritesManager.addFavorite(movie);
+            String userID = getGoogleUserId();
+            favoritesManager.addFavorite(movie,userID);
             movieList.add(movie);
             adapter.notifyItemInserted(movieList.size() - 1);
             Toast.makeText(getContext(), "Película añadida a favoritos: " + movie.getTitle(), Toast.LENGTH_SHORT).show();
@@ -152,13 +142,28 @@ public class HomeFragment extends Fragment {
         });
     }
 
+    public String getGoogleUserId() {
+        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+        if (user != null) {
+            return user.getUid();
+        } else {
+            return null;
+        }
+    }
+
     @Override
     public void onDestroyView() {
         super.onDestroyView();
         binding = null;
     }
+        @Override
+        public void onResume() {
+            super.onResume();
+            fetchMovies();
+        }
 
-    }
+
+}
 
 
 
