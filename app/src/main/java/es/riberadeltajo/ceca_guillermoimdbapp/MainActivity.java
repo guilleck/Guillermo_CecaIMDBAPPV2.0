@@ -1,7 +1,12 @@
 package es.riberadeltajo.ceca_guillermoimdbapp;
 
 import android.content.Intent;
+import android.content.SharedPreferences;
+import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
+import android.net.Uri;
 import android.os.Bundle;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.Menu;
 import android.widget.Button;
@@ -22,6 +27,7 @@ import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.auth.UserInfo;
 
 import androidx.annotation.NonNull;
+import androidx.core.view.GravityCompat;
 import androidx.lifecycle.DefaultLifecycleObserver;
 import androidx.lifecycle.LifecycleOwner;
 import androidx.navigation.NavController;
@@ -39,6 +45,7 @@ import java.util.Locale;
 
 import es.riberadeltajo.ceca_guillermoimdbapp.database.FavoritesDatabaseHelper;
 import es.riberadeltajo.ceca_guillermoimdbapp.databinding.ActivityMainBinding;
+import es.riberadeltajo.ceca_guillermoimdbapp.ui.slideshow.EditUserFragment;
 import es.riberadeltajo.ceca_guillermoimdbapp.utils.AppLifecycleManager;
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -50,12 +57,17 @@ public class MainActivity extends AppCompatActivity {
     private ActivityMainBinding binding;
     private FirebaseAuth auth;
     private GoogleSignInClient googleSignInClient;
+    private com.google.android.material.imageview.ShapeableImageView imageViewPhoto;
+    private TextView textViewNombre, textViewEmail;
+    private Button logoutButton;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         binding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
+
+
 
         setSupportActionBar(binding.appBarMain.toolbar);
 
@@ -73,10 +85,10 @@ public class MainActivity extends AppCompatActivity {
         NavigationView navigationView = binding.navView;
 
         View headerView = navigationView.getHeaderView(0);
-        TextView textViewNombre = headerView.findViewById(R.id.textViewNombre);
-        TextView textViewEmail = headerView.findViewById(R.id.textViewEmail);
-        com.google.android.material.imageview.ShapeableImageView imageViewPhoto = headerView.findViewById(R.id.imageViewPhoto);
-        Button logoutButton = headerView.findViewById(R.id.buttonLogout);
+        textViewNombre = headerView.findViewById(R.id.textViewNombre);
+        textViewEmail = headerView.findViewById(R.id.textViewEmail);
+        imageViewPhoto = headerView.findViewById(R.id.imageViewPhoto);
+        logoutButton = headerView.findViewById(R.id.buttonLogout);
 
 
         String providerId = getProviderId(user);
@@ -94,9 +106,9 @@ public class MainActivity extends AppCompatActivity {
             Glide.with(this)
                     .load(user.getPhotoUrl())
                     .into(imageViewPhoto);
-        }else{
-            imageViewPhoto.setImageResource(R.drawable.usuario);
         }
+
+        loadProfileImage();
 
         logoutButton.setOnClickListener(v -> {
             signOut();
@@ -112,15 +124,18 @@ public class MainActivity extends AppCompatActivity {
 
         navigationView.setNavigationItemSelectedListener(item -> {
             int id = item.getItemId();
-            if(id == R.id.nav_top_10){
+            if (id == R.id.nav_top_10) {
                 navController.navigate(R.id.nav_home);
-            }else if(id == R.id.nav_favoritas){
+            } else if (id == R.id.nav_favoritas) {
                 navController.navigate(R.id.nav_search);
-            }else if(id == R.id.nav_buscar){
+            } else if (id == R.id.nav_buscar) {
                 navController.navigate(R.id.nav_buscarPeli);
             }
+
+            drawer.closeDrawer(GravityCompat.START);
             return true;
         });
+
 
         AppLifecycleManager appLifecycleManager = new AppLifecycleManager(MainActivity.this);
 
@@ -146,6 +161,78 @@ public class MainActivity extends AppCompatActivity {
                 appLifecycleManager.onActivityPaused(MainActivity.this);
             }
         });
+
+    }
+
+    private void loadUserProfile() {
+        FavoritesDatabaseHelper dbHelper = new FavoritesDatabaseHelper(this);
+        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+
+        if (user != null) {
+            SQLiteDatabase db = dbHelper.getReadableDatabase();
+            Cursor cursor = db.rawQuery(
+                    "SELECT name, address, phone, image FROM " + FavoritesDatabaseHelper.TABLE_USERS +
+                            " WHERE " + FavoritesDatabaseHelper.COLUMN_USER_ID + " = ?",
+                    new String[]{user.getUid()}
+            );
+
+            if (cursor != null && cursor.moveToFirst()) {
+                // Retrieve data
+                String name = cursor.getString(cursor.getColumnIndex("name"));
+                String address = cursor.getString(cursor.getColumnIndex("address"));
+                String phone = cursor.getString(cursor.getColumnIndex("phone"));
+                String imageUri = cursor.getString(cursor.getColumnIndex("image"));
+
+                // Close cursor and database
+                cursor.close();
+                db.close();
+
+                // Update UI
+                textViewNombre.setText(name != null ? name : "Usuario");
+                textViewEmail.setText(user.getEmail());
+
+                if (imageUri != null) {
+                    Glide.with(this).load(Uri.parse(imageUri)).into(imageViewPhoto);
+                } else {
+                    imageViewPhoto.setImageResource(R.drawable.usuario);
+                }
+            } else {
+                db.close();
+                Toast.makeText(this, "No se encontraron datos del usuario.", Toast.LENGTH_SHORT).show();
+            }
+        } else {
+            redirectToLogin();
+        }
+    }
+
+
+
+
+    private void loadProfileImage() {
+        SharedPreferences prefs = getSharedPreferences("UserProfile", MODE_PRIVATE);
+        String imageUriString = prefs.getString("profile_image_uri", null);
+
+        if (imageUriString != null) {
+            Uri imageUri = Uri.parse(imageUriString);
+            Glide.with(this).load(imageUri).into(imageViewPhoto);
+        } else {
+            imageViewPhoto.setImageResource(R.drawable.usuario);
+        }
+    }
+
+
+
+    @Override
+    public boolean onOptionsItemSelected(@NonNull MenuItem item) {
+        int id = item.getItemId();
+        NavController navController = Navigation.findNavController(this, R.id.nav_host_fragment_content_main);
+
+        if (id == R.id.action_editUser) {
+            navController.navigate(R.id.nav_editUser);
+            return true;
+        }
+
+        return super.onOptionsItemSelected(item);
     }
 
     @Override
@@ -160,6 +247,8 @@ public class MainActivity extends AppCompatActivity {
         return NavigationUI.navigateUp(navController, mAppBarConfiguration)
                 || super.onSupportNavigateUp();
     }
+
+
     private String getProviderId(FirebaseUser user) {
         if (user == null) {
             return "unknown";
@@ -182,51 +271,61 @@ public class MainActivity extends AppCompatActivity {
 
         if (user != null) {
             String providerId = getProviderId(user);
-            String ID = user.getUid();
+            String userId = user.getUid();
             String fechaLogout = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(new Date());
             FavoritesDatabaseHelper dbHelper = new FavoritesDatabaseHelper(MainActivity.this);
-            dbHelper.updateLastLogout(ID, fechaLogout);
+            dbHelper.updateLastLogout(userId, fechaLogout);
 
+            // Cerrar el cajón si está abierto
+            DrawerLayout drawer = binding.drawerLayout;
+            if (drawer.isDrawerOpen(GravityCompat.START)) {
+                drawer.closeDrawer(GravityCompat.START);
+            }
 
+            // Manejo del cierre de sesión según el proveedor
             if ("google.com".equals(providerId)) {
-
                 googleSignInClient.signOut().addOnCompleteListener(this, task -> {
                     Toast.makeText(MainActivity.this, "Sesión cerrada en Google", Toast.LENGTH_SHORT).show();
+                    auth.signOut(); // Cerrar sesión en Firebase
                     redirectToLogin();
-
                 });
             } else if ("facebook.com".equals(providerId)) {
-
                 LoginManager.getInstance().logOut();
-                auth.signOut(); // Asegurarse de cerrar sesión en Firebase también
+                auth.signOut(); // Cerrar sesión en Firebase
                 Toast.makeText(MainActivity.this, "Sesión cerrada en Facebook", Toast.LENGTH_SHORT).show();
                 redirectToLogin();
             } else {
-                // Cerrar sesión de otros proveedores o anónimos
+                // Cerrar sesión para otros proveedores o anónimos
                 auth.signOut();
+                Toast.makeText(MainActivity.this, "Sesión cerrada", Toast.LENGTH_SHORT).show();
                 redirectToLogin();
             }
         } else {
             redirectToLogin();
         }
     }
+
+
     private void registrarLastLogin(FirebaseUser user) {
+        if (user == null) return;
+
         String userId = user.getUid();
-        String name = user.getDisplayName();
-        String email = user.getEmail();
+        String name = user.getDisplayName() != null ? user.getDisplayName() : "Sin nombre";
+        String email = user.getEmail() != null ? user.getEmail() : "Sin email";
+        String photoUrl = user.getPhotoUrl() != null ? user.getPhotoUrl().toString() : "Sin foto";
         String fechaLogin = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(new Date());
 
+        // Placeholder para address y phone
+        String address = "Sin dirección";
+        String phone = "Sin teléfono";
+
+        // Inicializar el helper de la base de datos
         FavoritesDatabaseHelper dbHelper = new FavoritesDatabaseHelper(this);
 
-        // Insertar o actualizar el último inicio de sesión
-        dbHelper.insertOrUpdateUser(
-                userId,
-                name,
-                email,
-                fechaLogin,
-                null  // last_logout permanece null porque no se ha cerrado la sesión
-        );
+        // Insertar o actualizar el usuario en la base de datos
+        dbHelper.insertOrUpdateUser(userId, name, email, fechaLogin, null, phone, address, photoUrl);
     }
+
 
     private void redirectToLogin() {
         Intent intent = new Intent(MainActivity.this, LoginActivity.class);
@@ -234,5 +333,14 @@ public class MainActivity extends AppCompatActivity {
         startActivity(intent);
         finish();
     }
+
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        loadUserProfile();
+        loadProfileImage();
+    }
+
 
 }
