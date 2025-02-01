@@ -1,5 +1,6 @@
 package es.riberadeltajo.ceca_guillermoimdbapp;
 
+import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.database.Cursor;
@@ -15,6 +16,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.facebook.login.LoginManager;
+import com.facebook.share.Share;
 import com.google.android.gms.auth.api.signin.GoogleSignIn;
 import com.google.android.gms.auth.api.signin.GoogleSignInClient;
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
@@ -45,6 +47,7 @@ import java.util.Locale;
 
 import es.riberadeltajo.ceca_guillermoimdbapp.database.FavoritesDatabaseHelper;
 import es.riberadeltajo.ceca_guillermoimdbapp.databinding.ActivityMainBinding;
+import es.riberadeltajo.ceca_guillermoimdbapp.models.KeyStoreManager;
 import es.riberadeltajo.ceca_guillermoimdbapp.ui.slideshow.EditUserFragment;
 import es.riberadeltajo.ceca_guillermoimdbapp.utils.AppLifecycleManager;
 import retrofit2.Call;
@@ -106,6 +109,8 @@ public class MainActivity extends AppCompatActivity {
             Glide.with(this)
                     .load(user.getPhotoUrl())
                     .into(imageViewPhoto);
+        }else{
+                imageViewPhoto.setImageResource(R.drawable.usuario);
         }
 
         loadProfileImage();
@@ -176,23 +181,29 @@ public class MainActivity extends AppCompatActivity {
                     new String[]{user.getUid()}
             );
 
+            SharedPreferences sharedPreferences = getSharedPreferences("UserProfile", Context.MODE_PRIVATE);
+            String savedName = sharedPreferences.getString("name", null);
+            String savedAddress = sharedPreferences.getString("address", null);
+            String savedPhone = sharedPreferences.getString("phone", null);
+            String savedImageUri = sharedPreferences.getString("profile_image_uri", null);
+
             if (cursor != null && cursor.moveToFirst()) {
-                // Retrieve data
                 String name = cursor.getString(cursor.getColumnIndex("name"));
                 String address = cursor.getString(cursor.getColumnIndex("address"));
                 String phone = cursor.getString(cursor.getColumnIndex("phone"));
                 String imageUri = cursor.getString(cursor.getColumnIndex("image"));
 
-                // Close cursor and database
                 cursor.close();
                 db.close();
 
-                // Update UI
-                textViewNombre.setText(name != null ? name : "Usuario");
+                // Priorizar los datos de SharedPreferences si existen
+                textViewNombre.setText(savedName != null ? savedName : (name != null ? name : "Usuario"));
                 textViewEmail.setText(user.getEmail());
 
-                if (imageUri != null) {
-                    Glide.with(this).load(Uri.parse(imageUri)).into(imageViewPhoto);
+                String finalImageUri = savedImageUri != null ? savedImageUri : imageUri;
+
+                if (finalImageUri != null && !finalImageUri.isEmpty()) {
+                    Glide.with(this).load(Uri.parse(finalImageUri)).into(imageViewPhoto);
                 } else {
                     imageViewPhoto.setImageResource(R.drawable.usuario);
                 }
@@ -206,10 +217,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-
-
     private void loadProfileImage() {
-        SharedPreferences prefs = getSharedPreferences("UserProfile", MODE_PRIVATE);
+        SharedPreferences prefs = getSharedPreferences("Imagen", Context.MODE_PRIVATE);
         String imageUriString = prefs.getString("profile_image_uri", null);
 
         if (imageUriString != null) {
@@ -219,8 +228,6 @@ public class MainActivity extends AppCompatActivity {
             imageViewPhoto.setImageResource(R.drawable.usuario);
         }
     }
-
-
 
     @Override
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
@@ -310,20 +317,27 @@ public class MainActivity extends AppCompatActivity {
         if (user == null) return;
 
         String userId = user.getUid();
-        String name = user.getDisplayName() != null ? user.getDisplayName() : "Sin nombre";
         String email = user.getEmail() != null ? user.getEmail() : "Sin email";
-        String photoUrl = user.getPhotoUrl() != null ? user.getPhotoUrl().toString() : "Sin foto";
         String fechaLogin = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(new Date());
 
-        // Placeholder para address y phone
-        String address = "Sin dirección";
-        String phone = "Sin teléfono";
 
-        // Inicializar el helper de la base de datos
+
+        SharedPreferences sharedPreferences = getSharedPreferences("UserProfile", Context.MODE_PRIVATE);
+        String savedName = sharedPreferences.getString("name", null);
+        String savedAddress = sharedPreferences.getString("address", null);
+        String savedPhone = sharedPreferences.getString("phone", null);
+
+        SharedPreferences prefs = getSharedPreferences("Imagen", Context.MODE_PRIVATE);
+        String imageUriString = prefs.getString("profile_image_uri", null);
+
+        KeyStoreManager keyStoreManager = new KeyStoreManager(this);
+        String addressEncriptado = savedAddress != null ? keyStoreManager.encrypt(savedAddress) : null;
+        String phoneEncriptado = savedPhone != null ? keyStoreManager.encrypt(savedPhone) : null;
+
         FavoritesDatabaseHelper dbHelper = new FavoritesDatabaseHelper(this);
 
         // Insertar o actualizar el usuario en la base de datos
-        dbHelper.insertOrUpdateUser(userId, name, email, fechaLogin, null, phone, address, photoUrl);
+        dbHelper.insertOrUpdateUser(userId, savedName, email, fechaLogin, null, phoneEncriptado, addressEncriptado, imageUriString);
     }
 
 

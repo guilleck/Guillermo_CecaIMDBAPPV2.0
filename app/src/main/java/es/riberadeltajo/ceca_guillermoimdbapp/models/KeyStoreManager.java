@@ -21,15 +21,10 @@ public class KeyStoreManager {
     private static final String TRANSFORMATION = "AES/GCM/NoPadding";
     private static final int IV_SIZE = 12;
     private static final int TAG_LENGTH = 128;
-    private Context context;
 
     private SecretKey secretKey;
 
     public KeyStoreManager(Context context) {
-        this.context = context.getApplicationContext();
-    }
-
-    public KeyStoreManager() {
         try {
             KeyStore keyStore = KeyStore.getInstance(ANDROID_KEYSTORE);
             keyStore.load(null);
@@ -39,13 +34,18 @@ public class KeyStoreManager {
                 generateKey();
             }
 
-            // Obtener la clave
+            // Obtener la clave del almacén de claves
             KeyStore.SecretKeyEntry secretKeyEntry = (KeyStore.SecretKeyEntry) keyStore.getEntry(KEY_ALIAS, null);
             if (secretKeyEntry != null) {
                 secretKey = secretKeyEntry.getSecretKey();
             }
+
+            if (secretKey == null) {
+                Log.e(TAG, "Error: SecretKey es null después de la inicialización.");
+            }
+
         } catch (Exception e) {
-            Log.e(TAG, "Error initializing KeystoreManager", e);
+            Log.e(TAG, "Error inicializando KeyStoreManager", e);
         }
     }
 
@@ -63,14 +63,28 @@ public class KeyStoreManager {
                     .build();
             keyGenerator.init(keyGenParameterSpec);
             keyGenerator.generateKey();
-            Log.d(TAG, "AES key generated and stored in Keystore.");
+            Log.d(TAG, "Clave AES generada y almacenada en Keystore.");
+
+            // Volver a obtener la clave generada
+            KeyStore keyStore = KeyStore.getInstance(ANDROID_KEYSTORE);
+            keyStore.load(null);
+            KeyStore.SecretKeyEntry secretKeyEntry = (KeyStore.SecretKeyEntry) keyStore.getEntry(KEY_ALIAS, null);
+            if (secretKeyEntry != null) {
+                secretKey = secretKeyEntry.getSecretKey();
+            }
+
         } catch (Exception e) {
-            Log.e(TAG, "Error generating AES key", e);
+            Log.e(TAG, "Error generando clave AES", e);
         }
     }
 
     public String encrypt(String plainText) {
         try {
+            if (secretKey == null) {
+                Log.e(TAG, "Error: SecretKey es null al intentar encriptar.");
+                return null;
+            }
+
             Cipher cipher = Cipher.getInstance(TRANSFORMATION);
             cipher.init(Cipher.ENCRYPT_MODE, secretKey);
             byte[] iv = cipher.getIV();
@@ -85,13 +99,18 @@ public class KeyStoreManager {
             // Codificar en Base64
             return Base64.encodeToString(cipherMessage, Base64.DEFAULT);
         } catch (Exception e) {
-            Log.e(TAG, "Error encrypting data", e);
+            Log.e(TAG, "Error encriptando datos", e);
             return null;
         }
     }
 
     public String decrypt(String cipherText) {
         try {
+            if (secretKey == null) {
+                Log.e(TAG, "Error: SecretKey es null al intentar desencriptar.");
+                return null;
+            }
+
             byte[] cipherMessage = Base64.decode(cipherText, Base64.DEFAULT);
 
             // Extraer IV y cipherText
@@ -108,7 +127,7 @@ public class KeyStoreManager {
 
             return new String(decryptedBytes, "UTF-8");
         } catch (Exception e) {
-            Log.e(TAG, "Error decrypting data", e);
+            Log.e(TAG, "Error desencriptando datos", e);
             return null;
         }
     }

@@ -5,6 +5,8 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
 import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Bundle;
@@ -25,6 +27,8 @@ import androidx.annotation.Nullable;
 import androidx.core.app.ActivityCompat;
 import androidx.fragment.app.Fragment;
 import androidx.navigation.Navigation;
+
+import com.bumptech.glide.load.engine.DiskCacheStrategy;
 import com.google.i18n.phonenumbers.NumberParseException;
 import com.google.i18n.phonenumbers.PhoneNumberUtil;
 import com.google.i18n.phonenumbers.Phonenumber;
@@ -59,6 +63,9 @@ public class EditUserFragment extends Fragment {
     private FirebaseAuth auth;
     private FavoritesDatabaseHelper favoritesDatabaseHelper;
     private KeyStoreManager keyStoreManager;
+    private static final int REQUEST_CODE_GALLERY = 101;
+    private static final int REQUEST_CODE_CAMERA = 102;
+
 
     private ActivityResultLauncher<Intent> locationLauncher;
     private ActivityResultLauncher<Intent> galleryLauncher;
@@ -80,18 +87,24 @@ public class EditUserFragment extends Fragment {
         buttonSave = view.findViewById(R.id.buttonSave);
         keyStoreManager = new KeyStoreManager(requireContext());
         auth = FirebaseAuth.getInstance();
-        favoritesDatabaseHelper = new FavoritesDatabaseHelper(requireContext());
+        favoritesDatabaseHelper = new FavoritesDatabaseHelper(getContext() != null ? getContext() : requireActivity());
+
+        SharedPreferences sharedPreferences = requireContext().getSharedPreferences("UserProfile", Context.MODE_PRIVATE);
+        String savedName = sharedPreferences.getString("name", "");
+        String savedAddress = sharedPreferences.getString("address", "");
+        String savedPhone = sharedPreferences.getString("phone", "");
+        String savedImageUri = sharedPreferences.getString("profile_image_uri", "");
+
+        editTextName.setText(savedName);
+        editTextPhone.setText(savedPhone);
+
+        loadSavedImage();
 
 
         FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
         if (user != null) {
             editTextName.setText(user.getDisplayName());
             editTextEmail.setText(user.getEmail());
-        }
-
-        Uri savedUri = loadProfileImageUri();
-        if (savedUri != null) {
-            Glide.with(this).load(savedUri).into(imageViewProfile);
         }
 
         locationLauncher = registerForActivityResult(
@@ -135,6 +148,7 @@ public class EditUserFragment extends Fragment {
 
 
 
+
         buttonSelectAddress.setOnClickListener(v -> {
             if (ActivityCompat.checkSelfPermission(requireContext(), Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
                 requestPermissions(new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, 201);
@@ -143,32 +157,38 @@ public class EditUserFragment extends Fragment {
                 locationLauncher.launch(intent);
             }
         });
+
+
         buttonSelectImage.setOnClickListener(v -> {
-            // Crear opciones para el diálogo
             String[] options = {"Tomar foto", "Seleccionar de galería", "Usar URL externa"};
 
-            // Crear el AlertDialog
             new androidx.appcompat.app.AlertDialog.Builder(requireContext())
                     .setTitle("Seleccionar imagen")
                     .setItems(options, (dialog, which) -> {
                         switch (which) {
                             case 0: // Tomar foto con la cámara
-                                Intent cameraIntent = new Intent(android.provider.MediaStore.ACTION_IMAGE_CAPTURE);
-                                cameraLauncher.launch(cameraIntent);
+                                if (ActivityCompat.checkSelfPermission(requireContext(), Manifest.permission.CAMERA)
+                                        != PackageManager.PERMISSION_GRANTED) {
+                                    requestCameraPermission.launch(Manifest.permission.CAMERA);
+                                } else {
+                                    abrirCamara(); // Iniciar cámara con requestCode
+                                }
                                 break;
 
-                            case 1: // Seleccionar de la galería
+                            case 1:
                                 Intent galleryIntent = new Intent(Intent.ACTION_PICK, android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
                                 startActivityForResult(galleryIntent, 101);
                                 break;
 
                             case 2: // Usar URL externa
-                                mostrarDialogoUrl();
+                                mostrarDialogoUrl(); // Mostrar un diálogo para introducir URL
                                 break;
                         }
                     })
                     .show();
         });
+
+
 
 
 
@@ -180,56 +200,38 @@ public class EditUserFragment extends Fragment {
             Toast.makeText(requireContext(), "Seleccionado: " + selectedCountry + " (" + selectedCode + ")", Toast.LENGTH_SHORT).show();
 
             saveSelectedCountryCode(selectedCode, selectedCountry);
-            
+
         });
 
         loadSelectedCountryCode(ccp);
 
         buttonSave.setOnClickListener(v -> {
-            String phoneNumber = editTextPhone.getText().toString().trim();
-            String countryCode = ccp.getSelectedCountryCode();
-            String fullPhone = "+" + countryCode + phoneNumber;
-            Uri image = loadProfileImageUri();
-
-            if (!isValidPhoneNumber(fullPhone, ccp.getSelectedCountryNameCode())) {
-                Toast.makeText(requireContext(), "Número de teléfono inválido para el país seleccionado", Toast.LENGTH_SHORT).show();
-                return;
-            }
-
-            String address = editTextAddress.getText().toString().trim();
             String name = editTextName.getText().toString().trim();
-            if (name.isEmpty()) {
-                Toast.makeText(requireContext(), "El nombre no puede estar vacío", Toast.LENGTH_SHORT).show();
+            String address = editTextAddress.getText().toString().trim();
+            String phone = editTextPhone.getText().toString().trim();
+            String email = editTextEmail.getText().toString().trim();
+
+            String imageUriString = selectedImageUri != null ? selectedImageUri.toString() : "";
+
+            if (name.isEmpty() || address.isEmpty() || phone.isEmpty() || email.isEmpty()) {
+                Toast.makeText(requireContext(), "Todos los campos son obligatorios", Toast.LENGTH_SHORT).show();
                 return;
             }
 
-            String encryptedPhone = keyStoreManager.encrypt(phoneNumber);
-            String encryptedAddress = keyStoreManager.encrypt(address);
+            // Guardar datos en SharedPreferences
+            SharedPreferences prefs = requireContext().getSharedPreferences("UserProfile", Context.MODE_PRIVATE);
+            SharedPreferences.Editor editor = prefs.edit();
+            editor.putString("name", name);
+            editor.putString("address", address);
+            editor.putString("phone", phone);
+            editor.putString("profile_image_uri", String.valueOf(imageUriString));
+            editor.apply();
 
             saveUserProfile();
 
-            FirebaseUser user1 = auth.getCurrentUser();
-            if (user != null) {
-                favoritesDatabaseHelper.insertOrUpdateUser(
-                        user1.getUid(),
-                        name,
-                        editTextEmail.getText().toString().trim(),
-                        getCurrentTimestamp(),
-                        null,
-                        encryptedPhone,
-                        encryptedAddress,
-                        image != null ? image.toString() : null
-                );
+            Toast.makeText(requireContext(), "Perfil actualizado correctamente", Toast.LENGTH_SHORT).show();
 
-                // LOG PARA DEPURAR
-                System.out.println("Datos guardados: ");
-                System.out.println("Name: " + name);
-                System.out.println("Phone: " + phoneNumber);
-                System.out.println("Address: " + address);
-            } else {
-                Toast.makeText(requireContext(), "Usuario no autenticado", Toast.LENGTH_SHORT).show();
-            }
-
+            // Volver a MainActivity
             Intent intent = new Intent(requireContext(), MainActivity.class);
             startActivity(intent);
         });
@@ -239,14 +241,21 @@ public class EditUserFragment extends Fragment {
         return view;
     }
 
+    private final ActivityResultLauncher<String> requestCameraPermission =
+            registerForActivityResult(new ActivityResultContracts.RequestPermission(), isGranted -> {
+                if (isGranted) {
+                    abrirCamara();
+                } else {
+                    Toast.makeText(getContext() != null ? getContext() : requireActivity(), "Permiso de cámara denegado", Toast.LENGTH_SHORT).show();
+                }
+            });
+
     private void abrirCamara() {
         Intent cameraIntent = new Intent(android.provider.MediaStore.ACTION_IMAGE_CAPTURE);
-        if (cameraIntent.resolveActivity(requireContext().getPackageManager()) != null) {
-            cameraLauncher.launch(cameraIntent);
-        } else {
-            Toast.makeText(requireContext(), "No se pudo abrir la cámara", Toast.LENGTH_SHORT).show();
-        }
+        startActivityForResult(cameraIntent, 102); // Request code para cámara
     }
+
+
 
 
     private void saveSelectedCountryCode(String code, String country) {
@@ -277,42 +286,40 @@ public class EditUserFragment extends Fragment {
                     if (!url.isEmpty()) {
                         Uri imageUri = Uri.parse(url);
                         Glide.with(this).load(imageUri).into(imageViewProfile);
-                        saveProfileImageUri(imageUri); // Guardar la imagen
+                        saveProfileImageUri(imageUri); // Guardar la URI
                     }
                 })
                 .setNegativeButton("Cancelar", null)
                 .show();
     }
 
+
+
     @Override
     public void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
 
-        if (resultCode == getActivity().RESULT_OK && data != null) {
-            if (requestCode == 101) { // Imagen seleccionada de la galería
+        if (resultCode == requireActivity().RESULT_OK && data != null) {
+            if (requestCode == 101) { // Galería
                 Uri selectedImageUri = data.getData();
                 Glide.with(this).load(selectedImageUri).into(imageViewProfile);
-
-                // Guardar la URI de la imagen
-                saveProfileImageUri(selectedImageUri);
-
-            } else if (requestCode == 102) { // Imagen capturada con la cámara
+                saveProfileImageUri(selectedImageUri); // Guardar la URI
+            } else if (requestCode == 102) { // Cámara
                 Bundle extras = data.getExtras();
                 Bitmap photo = (Bitmap) extras.get("data");
 
                 if (photo != null) {
-                    // Convertir el Bitmap en un archivo Uri para guardar
                     Uri photoUri = saveBitmapToFile(photo);
                     Glide.with(this).load(photoUri).into(imageViewProfile);
-
-                    // Guardar la URI de la imagen
-                    saveProfileImageUri(photoUri);
+                    saveProfileImageUri(photoUri); // Guardar la URI
                 }
             }
         }
     }
 
+
     private Uri saveBitmapToFile(Bitmap bitmap) {
+
         File file = new File(requireContext().getExternalFilesDir(Environment.DIRECTORY_PICTURES), "profile_image.jpg");
         try (FileOutputStream out = new FileOutputStream(file)) {
             bitmap.compress(Bitmap.CompressFormat.JPEG, 100, out);
@@ -323,61 +330,48 @@ public class EditUserFragment extends Fragment {
         }
     }
 
-
-
-
-    private void saveProfileImageUri(Uri imageUri) {
-        requireContext().getSharedPreferences("UserProfile", Context.MODE_PRIVATE)
-                .edit()
-                .putString("profile_image_uri", imageUri.toString())
-                .apply();
+    private void saveProfileImageUri(Uri uri) {
+        SharedPreferences sharedPreferences = requireContext().getSharedPreferences("Imagen", Context.MODE_PRIVATE);
+        SharedPreferences.Editor editor = sharedPreferences.edit();
+        editor.putString("profile_image_uri", uri.toString());
+        editor.apply();
     }
 
-    private void saveUserProfile() {
-        String name = editTextName.getText().toString().trim();
-        String address = editTextAddress.getText().toString().trim();
-        String phone = editTextPhone.getText().toString().trim();
+    private void loadSavedImage() {
+        SharedPreferences sharedPreferences = requireContext().getSharedPreferences("UserProfile", Context.MODE_PRIVATE);
+        String savedImageUri = sharedPreferences.getString("profile_image_uri", null);
 
-        if (name.isEmpty()) {
-            if (isAdded()) {
-                Toast.makeText(requireContext(), "El nombre no puede estar vacío", Toast.LENGTH_SHORT).show();
-            }
-            return;
-        }
-
-        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
-        if (user != null) {
-            FavoritesDatabaseHelper dbHelper = new FavoritesDatabaseHelper(getContext());
-            String userId = user.getUid();
-
-            dbHelper.insertOrUpdateUser(userId, name, user.getEmail(), getCurrentTimestamp(), null, phone, address, null);
-
-            if (isAdded()) {
-                SharedPreferences prefs = requireContext().getSharedPreferences("UserProfile", Context.MODE_PRIVATE);
-                prefs.edit().putString("nombre", name).apply();
-
-                Toast.makeText(requireContext(), "Perfil actualizado correctamente", Toast.LENGTH_SHORT).show();
-            }
-
-            if (isAdded()) {
-                requireActivity().onBackPressed();
-            }
-        } else {
-            if (isAdded()) {
-                Toast.makeText(requireContext(), "No se pudo guardar el perfil. Usuario no autenticado.", Toast.LENGTH_SHORT).show();
-            }
+        if (savedImageUri != null) {
+            Uri imageUri = Uri.parse(savedImageUri);
+            Glide.with(this).load(imageUri).into(imageViewProfile);
         }
     }
-
-
 
 
 
     private Uri loadProfileImageUri() {
-        SharedPreferences prefs = requireContext().getSharedPreferences("imagen", Context.MODE_PRIVATE);
-        String uriString = prefs.getString("imagen", null);
+        SharedPreferences prefs = requireContext().getSharedPreferences("UserProfile", Context.MODE_PRIVATE);
+        String uriString = prefs.getString("profile_image_uri", null);
         return uriString != null ? Uri.parse(uriString) : null;
     }
+
+    private void saveUserProfile() {
+        if (!isAdded() || getContext() == null) return;
+
+        String name = editTextName.getText().toString().trim();
+        String address = editTextAddress.getText().toString().trim();
+        String phone = editTextPhone.getText().toString().trim();
+
+        FirebaseUser user = auth.getCurrentUser();
+        if (user != null) {
+            FavoritesDatabaseHelper dbHelper = new FavoritesDatabaseHelper(getContext());
+            dbHelper.insertOrUpdateUser(user.getUid(), name, user.getEmail(), getCurrentTimestamp(), null, phone, address, null);
+            Toast.makeText(getContext(), "Perfil actualizado correctamente", Toast.LENGTH_SHORT).show();
+        } else {
+            Toast.makeText(getContext(), "Usuario no autenticado", Toast.LENGTH_SHORT).show();
+        }
+    }
+
     private boolean isValidPhoneNumber(String fullPhone, String selectedCountryCode) {
         if (TextUtils.isEmpty(fullPhone) || TextUtils.isEmpty(selectedCountryCode)) {
             return false;
