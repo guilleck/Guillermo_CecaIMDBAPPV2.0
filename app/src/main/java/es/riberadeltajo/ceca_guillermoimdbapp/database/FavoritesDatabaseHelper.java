@@ -11,7 +11,7 @@ import java.security.AccessControlContext;
 public class FavoritesDatabaseHelper extends SQLiteOpenHelper {
 
     private static final String DATABASE_NAME = "favorites.db";
-    private static final int DATABASE_VERSION = 3;
+    private static final int DATABASE_VERSION = 5;
 
     public static final String COLUMN_RATING = "rating";
     public static final String TABLE_FAVORITES = "favorites";
@@ -27,6 +27,9 @@ public class FavoritesDatabaseHelper extends SQLiteOpenHelper {
     public static final String COLUMN_EMAIL = "email";
     public static final String COLUMN_LAST_LOGIN = "last_login";
     public static final String COLUMN_LAST_LOGOUT = "last_logout";
+    public static final String COLUMN_ADDRESS = "address";
+    public static final String COLUMN_PHONE = "phone";
+    public static final String COLUMN_IMAGE = "image";
 
     public FavoritesDatabaseHelper(Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
@@ -47,35 +50,68 @@ public class FavoritesDatabaseHelper extends SQLiteOpenHelper {
 
         String CREATE_USERS_TABLE = "CREATE TABLE " + TABLE_USERS + " (" +
                 COLUMN_USER_ID + " TEXT PRIMARY KEY, " +
-                COLUMN_NAME + " TEXT NOT NULL, " +
+                COLUMN_NAME + " TEXT, " +
                 COLUMN_EMAIL + " TEXT NOT NULL UNIQUE, " +
+                COLUMN_ADDRESS + " TEXT, " +
+                COLUMN_PHONE + " TEXT, " +
+                COLUMN_IMAGE + " TEXT, " +
                 COLUMN_LAST_LOGIN + " TEXT, " +
                 COLUMN_LAST_LOGOUT + " TEXT)";
         db.execSQL(CREATE_USERS_TABLE);
+
     }
 
-    public void insertOrUpdateUser(String userId, String name, String email, String lastLogin, String lastLogout) {
+    public void insertOrUpdateUser(String userId, String name, String email, String lastLogin, String lastLogout, String phone, String address, String image) {
         SQLiteDatabase db = getWritableDatabase();
 
+        // Verificar si el usuario ya existe
         Cursor cursor = db.rawQuery("SELECT " + COLUMN_USER_ID + " FROM " + TABLE_USERS +
                 " WHERE " + COLUMN_USER_ID + " = ?", new String[]{userId});
 
-        boolean existe = (cursor != null && cursor.moveToFirst());
+        boolean exists = (cursor != null && cursor.moveToFirst());
         if (cursor != null) cursor.close();
 
+        // Crear valores para insertar o actualizar
         ContentValues values = new ContentValues();
         values.put(COLUMN_USER_ID, userId);
         values.put(COLUMN_NAME, name);
         values.put(COLUMN_EMAIL, email);
         values.put(COLUMN_LAST_LOGIN, lastLogin);
         values.put(COLUMN_LAST_LOGOUT, lastLogout);
+        values.put("phone", phone); // Nuevo campo
+        values.put("address", address); // Nuevo campo
+        values.put("image", image); // Nuevo campo
 
-        if (!existe) {
-            long result = db.insert(TABLE_USERS, null, values);
+        if (!exists) {
+            // Insertar si el usuario no existe
+            db.insert(TABLE_USERS, null, values);
         } else {
-            int rowsAffected = db.update(TABLE_USERS, values, COLUMN_USER_ID + "=?", new String[]{userId});
+            // Actualizar si ya existe
+            db.update(TABLE_USERS, values, COLUMN_USER_ID + "=?", new String[]{userId});
         }
 
+        db.close();
+    }
+
+
+
+
+    public void updateUserProfile(String userId, String name, String address, String phone, String image) {
+        SQLiteDatabase db = getWritableDatabase();
+        ContentValues values = new ContentValues();
+        values.put(COLUMN_NAME, name);
+        values.put(COLUMN_ADDRESS, address);
+
+        db.update(TABLE_USERS, values, COLUMN_USER_ID + "=?", new String[]{userId});
+        db.close();
+    }
+
+    public void updatePhotoUrl(String userId, String photoUrl) {
+        SQLiteDatabase db = getWritableDatabase();
+        ContentValues values = new ContentValues();
+        values.put("photo_url", photoUrl);
+
+        db.update(TABLE_USERS, values, COLUMN_USER_ID + "=?", new String[]{userId});
         db.close();
     }
 
@@ -100,12 +136,14 @@ public class FavoritesDatabaseHelper extends SQLiteOpenHelper {
     }
 
 
-    @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
-        if (oldVersion < 3) {
-            db.execSQL("DROP TABLE IF EXISTS " + TABLE_FAVORITES);
-            db.execSQL("DROP TABLE IF EXISTS " + TABLE_USERS);
-            onCreate(db);
+        if (oldVersion < 4) {
+            db.execSQL("ALTER TABLE " + TABLE_USERS + " ADD COLUMN " + COLUMN_ADDRESS + " TEXT");
+            db.execSQL("ALTER TABLE " + TABLE_USERS + " ADD COLUMN " + COLUMN_PHONE + " TEXT");
+        }
+        if (oldVersion < 5) {
+            db.execSQL("ALTER TABLE " + TABLE_USERS + " ADD COLUMN " + COLUMN_IMAGE + " TEXT");
         }
     }
+
 }

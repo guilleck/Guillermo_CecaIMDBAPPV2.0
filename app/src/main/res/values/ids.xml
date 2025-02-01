@@ -8,4 +8,5 @@
     <item name="TextViewRating" type="id" />
     <item name="btnSendSms" type="id" />
     <item name="recyclerViewSearch" type="id" />
+    <item name="Location" type="id" />
 </resources>

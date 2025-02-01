@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/nav_graph"
+    app:startDestination="@id/topTenFragment">
+
+    <fragment
+        android:id="@+id/topTenFragment"
+        android:name="es.riberadeltajo.ceca_guillermoimdbapp.ui.home.HomeFragment"
+        android:label="Top 10 Movies"
+        tools:layout="@layout/fragment_home">
+        <action
+            android:id="@+id/action_topTenFragment_to_editUserFragment"
+            app:destination="@id/editUserFragment" />
+    </fragment>
+
+
+    <!-- Fragmento Editar Usuario -->
+    <fragment
+        android:id="@+id/editUserFragment"
+        android:name="es.riberadeltajo.ceca_guillermoimdbapp.ui.slideshow.EditUserFragment"
+        android:label="Edit User"
+        tools:layout="@layout/fragment_edit_user">
+        <action
+            android:id="@+id/action_editUserFragment_to_searchLocationFragment"
+            app:destination="@id/searchLocationFragment" />
+        <action
+            android:id="@+id/action_to_editUserFragment"
+            app:destination="@id/editUserFragment" />
+
+    </fragment>
+
+    <!-- Fragmento Buscar Ubicación -->
+    <fragment
+        android:id="@+id/searchLocationFragment"
+        android:name="es.riberadeltajo.ceca_guillermoimdbapp.ui.slideshow.SearchLocationFragment"
+        android:label="Search Location"
+        tools:layout="@layout/fragment_search_location">
+        <action
+            android:id="@+id/action_searchLocationFragment_to_mapsFragment"
+            app:destination="@id/mapsFragment" />
+        <action
+            android:id="@+id/action_searchLocationFragment_to_editUserFragment"
+            app:destination="@id/editUserFragment" />
+    </fragment>
+
+    <!-- Fragmento Mapa -->
+    <fragment
+        android:id="@+id/mapsFragment"
+        android:name="es.riberadeltajo.ceca_guillermoimdbapp.ui.slideshow.MapsFragment"
+        android:label="Select Location"
+        tools:layout="@layout/fragment_maps">
+        <action
+            android:id="@+id/action_mapsFragment_to_editUserFragment"
+            app:destination="@id/editUserFragment" />
+    </fragment>
+
+</navigation>

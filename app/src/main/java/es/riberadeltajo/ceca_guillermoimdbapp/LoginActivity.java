@@ -7,11 +7,14 @@ import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
 import android.os.UserManager;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -55,6 +58,7 @@ import com.google.firebase.auth.AuthCredential;
 import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FacebookAuthProvider;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseAuthUserCollisionException;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.auth.GoogleAuthProvider;
 import com.google.gson.Gson;
@@ -62,6 +66,7 @@ import com.google.gson.Gson;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 
@@ -84,6 +89,8 @@ public class LoginActivity extends AppCompatActivity {
     private LoginButton buttonFacebook;
     private CallbackManager callbackManager;
     private FacebookTokenManager tokenManager;
+    private EditText editTextEmail, editTextContraseña;
+    private Button buttonRegister, buttonLogin;
 
     private final ActivityResultLauncher<Intent> activityResultLauncher = registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(),
@@ -107,7 +114,8 @@ public class LoginActivity extends AppCompatActivity {
                                             String nombre = user.getDisplayName();
                                             String email = user.getEmail();
 
-                                            registrarLastLogin(userID,nombre,email);
+
+                                            registrarLastLogin(userID,nombre,email,(user.getPhotoUrl() != null) ? user.getPhotoUrl().toString() : "");
 
                                             navegarMainActivity();
                                         }
@@ -193,6 +201,30 @@ public class LoginActivity extends AppCompatActivity {
             }
         });
 
+        editTextEmail = findViewById(R.id.editTextEmail);
+        editTextContraseña = findViewById(R.id.editTextPassWord);
+        buttonRegister = findViewById(R.id.buttonRegister);
+        buttonLogin = findViewById(R.id.buttonLogin);
+
+        buttonRegister.setOnClickListener(v -> {
+            registrarUsuario();
+        });
+
+        buttonLogin.setOnClickListener(v -> {
+            String email = editTextEmail.getText().toString().trim();
+            String password = editTextContraseña.getText().toString().trim();
+
+            if (email.isEmpty() || password.isEmpty()) {
+                Toast.makeText(this, "No se puede dejar ningún campo vacío", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            if(!correoCorrecto(email)){
+                Toast.makeText(LoginActivity.this,"El formato del correo no es el correcto", Toast.LENGTH_SHORT).show();
+            }
+
+            iniciarSesion(email, password);
+        });
     }
 
     @Override
@@ -218,7 +250,7 @@ public class LoginActivity extends AppCompatActivity {
                             String nombre = user.getDisplayName();
                             String email = user.getEmail();
 
-                            registrarLastLogin(userID,nombre,email);
+                            registrarLastLogin(userID,nombre,email,(user.getPhotoUrl() != null) ? user.getPhotoUrl().toString() : "");
 
                             navegarMainActivity();
                         }
@@ -280,7 +312,136 @@ public class LoginActivity extends AppCompatActivity {
         finish();
     }
 
-    private void registrarLastLogin(String userId, String name, String email) {
+    private void registrarLastLogin(String userId, String name, String email, String photoUrl) {
+        String fechaLogin = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(new Date());
+
+        FavoritesDatabaseHelper dbHelper = new FavoritesDatabaseHelper(this);
+
+        // Verificar si el usuario ya existe en la base de datos
+        SQLiteDatabase db = dbHelper.getReadableDatabase();
+        Cursor cursor = db.rawQuery("SELECT " + FavoritesDatabaseHelper.COLUMN_PHONE + ", " +
+                FavoritesDatabaseHelper.COLUMN_ADDRESS + ", " + FavoritesDatabaseHelper.COLUMN_IMAGE +
+                " FROM " + FavoritesDatabaseHelper.TABLE_USERS +
+                " WHERE " + FavoritesDatabaseHelper.COLUMN_USER_ID + " = ?", new String[]{userId});
+
+        String phone = null;
+        String address = null;
+        String existingPhotoUrl = null;
+
+        if (cursor != null && cursor.moveToFirst()) {
+            phone = cursor.getString(0);
+            address = cursor.getString(1);
+            existingPhotoUrl = cursor.getString(2);
+            cursor.close();
+        }
+
+        db.close();
+
+        if (phone == null && address == null && existingPhotoUrl == null) {
+            // No existe, insertar con campos proporcionados y los nuevos campos
+            dbHelper.insertOrUpdateUser(
+                    userId,
+                    name,
+                    email,
+                    fechaLogin,
+                    null,
+                    "", // phone
+                    "", // address
+                    (photoUrl != null) ? photoUrl : ""
+            );
+        } else {
+            dbHelper.updateLastLogin(userId, fechaLogin);
+
+            if (photoUrl != null && !photoUrl.isEmpty() && existingPhotoUrl == null) {
+                dbHelper.updatePhotoUrl(userId, photoUrl);
+            }
+        }
+
+        // Actualizar las preferencias
+        SharedPreferences preferences = getSharedPreferences("UserPrefs", Context.MODE_PRIVATE);
+        SharedPreferences.Editor editor = preferences.edit();
+        editor.putBoolean("isLoggedIn", true);
+        editor.apply();
+
+    }
+
+    private void registrarUsuario() {
+        String email = editTextEmail.getText().toString().trim();
+        String password = editTextContraseña.getText().toString().trim();
+
+        if (email.isEmpty()) {
+            Toast.makeText(LoginActivity.this,"No puede haber ningun campo vacio",Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+            Toast.makeText(LoginActivity.this,"El formato de correo es invalido",Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        if (password.isEmpty()) {
+            Toast.makeText(LoginActivity.this,"No puede haber ningun campo vacio",Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        if (password.length() < 6) {
+            Toast.makeText(LoginActivity.this,"La constraseña debe tener mas de 6 digitos",Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        auth.createUserWithEmailAndPassword(email, password)
+                .addOnCompleteListener(this, task -> {
+                    if (task.isSuccessful()) {
+                        FirebaseUser usuario = auth.getCurrentUser();
+                        if (usuario != null) {
+                            String uid = usuario.getUid();
+                            String nombre = usuario.getDisplayName();
+                            if (nombre == null || nombre.isEmpty()) {
+                                nombre = email.split("@")[0];
+                            }
+                            String emailUser = usuario.getEmail();
+
+                            registrarUsuarioEnBaseDatos(uid, nombre, emailUser);
+
+                           navegarMainActivity();
+                        }
+                    } else {
+                        if (task.getException() instanceof FirebaseAuthUserCollisionException) {
+                            // El correo ya está registrado
+                            FirebaseAuthUserCollisionException exception = (FirebaseAuthUserCollisionException) task.getException();
+                            String existingEmail = email;
+
+                            if (existingEmail != null && !existingEmail.isEmpty()) {
+                                auth.fetchSignInMethodsForEmail(existingEmail)
+                                        .addOnCompleteListener(fetchTask -> {
+                                            if (fetchTask.isSuccessful()) {
+                                                List<String> signInMethods = fetchTask.getResult().getSignInMethods();
+                                                boolean isGoogle = signInMethods != null && signInMethods.contains(GoogleAuthProvider.GOOGLE_SIGN_IN_METHOD);
+                                                boolean isFacebook = signInMethods != null && signInMethods.contains(FacebookAuthProvider.FACEBOOK_SIGN_IN_METHOD);
+
+                                                if (isGoogle || isFacebook) {
+                                                    Toast.makeText(LoginActivity.this, "Ese correo ya está registrado con otro tipo de inicio de sesión. Por favor, intenta iniciar sesión.", Toast.LENGTH_LONG).show();
+                                                } else {
+                                                    Toast.makeText(LoginActivity.this, "Ese correo ya está registrado. Intenta iniciar sesión.", Toast.LENGTH_LONG).show();
+                                                }
+                                            } else {
+                                                // Error al obtener los métodos de inicio de sesión
+                                                Toast.makeText(LoginActivity.this, "Error al verificar el correo.", Toast.LENGTH_SHORT).show();
+                                            }
+                                        });
+                            } else {
+                                // existingEmail es null o vacío, no se puede verificar los métodos de inicio de sesión
+                                Toast.makeText(LoginActivity.this, "Ese correo ya está registrado. Intenta iniciar sesión.", Toast.LENGTH_LONG).show();
+                            }
+                        } else {
+                            // Otros errores
+                            Toast.makeText(LoginActivity.this, "Error al registrar: " + task.getException().getMessage(), Toast.LENGTH_LONG).show();
+                        }
+                    }
+                });
+    }
+
+    private void registrarUsuarioEnBaseDatos(String userId, String name, String email) {
         String fechaLogin = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(new Date());
 
         FavoritesDatabaseHelper dbHelper = new FavoritesDatabaseHelper(this);
@@ -290,14 +451,40 @@ public class LoginActivity extends AppCompatActivity {
                 name,
                 email,
                 fechaLogin,
-                null
+                null,
+                "",
+                "",
+                ""
         );
 
-        SharedPreferences preferences = getSharedPreferences("UserPrefs", Context.MODE_PRIVATE);
-        SharedPreferences.Editor editor = preferences.edit();
-        editor.putBoolean("isLoggedIn", true);
-        editor.apply();
     }
+
+    private void iniciarSesion(String email, String password) {
+        auth.signInWithEmailAndPassword(email, password)
+                .addOnCompleteListener(this, task -> {
+                    if (task.isSuccessful()) {
+                        FirebaseUser user = auth.getCurrentUser();
+                        if (user != null) {
+                            String userId = user.getUid();
+
+                            String fechaLogin = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(new Date());
+
+                            FavoritesDatabaseHelper dbHelper = new FavoritesDatabaseHelper(this);
+                            dbHelper.updateLastLogin(userId, fechaLogin);
+
+                            navegarMainActivity();
+                        }
+                    } else {
+                        Toast.makeText(this, "Error al iniciar sesión: " + task.getException().getMessage(), Toast.LENGTH_SHORT).show();
+                    }
+                });
+    }
+
+    public boolean correoCorrecto(String correo){
+        String correoRegex = "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+.[a-zA-Z]{2,6}$";
+        return correo.matches(correoRegex);
+    }
+
 
 
 }
