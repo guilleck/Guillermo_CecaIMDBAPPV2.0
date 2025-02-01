@@ -15,29 +15,33 @@ import es.riberadeltajo.ceca_guillermoimdbapp.models.Movie;
 public class FavoritesManager {
     private final FavoritesDatabaseHelper databaseHelper;
     private SQLiteDatabase db;
+    private final Object databaseLock = new Object();
 
     public FavoritesManager(Context context) {
         databaseHelper = new FavoritesDatabaseHelper(context);
     }
 
     public void addFavorite(Movie movie, String userId) {
-        SQLiteDatabase db = databaseHelper.getWritableDatabase();
+        synchronized (databaseLock) {
+            SQLiteDatabase db = databaseHelper.getWritableDatabase();
 
-        if (isMovieInFavorites(movie, userId)) {
+            if (isMovieInFavorites(movie, userId)) {
+                db.close();
+                return;
+            }
+
+            ContentValues values = new ContentValues();
+            values.put(FavoritesDatabaseHelper.COLUMN_ID, movie.getId());
+            values.put(FavoritesDatabaseHelper.COLUMN_TITLE, movie.getTitle());
+            values.put(FavoritesDatabaseHelper.COLUMN_RELEASE_DATE, movie.getReleaseDate());
+            values.put(FavoritesDatabaseHelper.COLUMN_RATING, movie.getRating());
+            values.put(FavoritesDatabaseHelper.COLUMN_POSTER_PATH, movie.getPosterPath());
+            values.put(FavoritesDatabaseHelper.COLUMN_USER_ID, userId);  // Asociar la película al usuario
+
+            db.insert(FavoritesDatabaseHelper.TABLE_FAVORITES, null, values);
             db.close();
-            return;
         }
 
-        ContentValues values = new ContentValues();
-        values.put(FavoritesDatabaseHelper.COLUMN_ID, movie.getId());
-        values.put(FavoritesDatabaseHelper.COLUMN_TITLE, movie.getTitle());
-        values.put(FavoritesDatabaseHelper.COLUMN_RELEASE_DATE, movie.getReleaseDate());
-        values.put(FavoritesDatabaseHelper.COLUMN_RATING, movie.getRating());
-        values.put(FavoritesDatabaseHelper.COLUMN_POSTER_PATH, movie.getPosterPath());
-        values.put(FavoritesDatabaseHelper.COLUMN_USER_ID, userId);  // Asociar la película al usuario
-
-        db.insert(FavoritesDatabaseHelper.TABLE_FAVORITES, null, values);
-        db.close();
     }
 
     @SuppressLint("Range")

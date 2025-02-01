@@ -48,6 +48,7 @@ import java.util.Locale;
 import es.riberadeltajo.ceca_guillermoimdbapp.database.FavoritesDatabaseHelper;
 import es.riberadeltajo.ceca_guillermoimdbapp.databinding.ActivityMainBinding;
 import es.riberadeltajo.ceca_guillermoimdbapp.models.KeyStoreManager;
+import es.riberadeltajo.ceca_guillermoimdbapp.sync.FavoritesSync;
 import es.riberadeltajo.ceca_guillermoimdbapp.ui.slideshow.EditUserFragment;
 import es.riberadeltajo.ceca_guillermoimdbapp.utils.AppLifecycleManager;
 import retrofit2.Call;
@@ -202,9 +203,14 @@ public class MainActivity extends AppCompatActivity {
 
                 String finalImageUri = savedImageUri != null ? savedImageUri : imageUri;
 
-                if (finalImageUri != null && !finalImageUri.isEmpty()) {
-                    Glide.with(this).load(Uri.parse(finalImageUri)).into(imageViewPhoto);
+                if (user.getPhotoUrl() != null) {
+                    Glide.with(this)
+                            .load(user.getPhotoUrl()) // URL de la foto del usuario actual
+                            .placeholder(R.drawable.usuario) // Imagen predeterminada mientras se carga
+                            .error(R.drawable.usuario) // Imagen predeterminada si hay un error
+                            .into(imageViewPhoto);
                 } else {
+                    // Si no hay foto de usuario, usa la predeterminada
                     imageViewPhoto.setImageResource(R.drawable.usuario);
                 }
             } else {
@@ -348,13 +354,28 @@ public class MainActivity extends AppCompatActivity {
         finish();
     }
 
+    private void clearUserPreferences() {
+        SharedPreferences sharedPreferences = getSharedPreferences("UserProfile", Context.MODE_PRIVATE);
+        SharedPreferences.Editor editor = sharedPreferences.edit();
+        editor.clear(); // Borra todos los datos guardados
+        editor.apply();
+    }
+
+
 
     @Override
     protected void onResume() {
         super.onResume();
+
+        FavoritesSync favoritesSync = new FavoritesSync(this);
+        favoritesSync.syncToFirestore();
+        favoritesSync.syncFromFirestore();
+
+        clearUserPreferences();
         loadUserProfile();
         loadProfileImage();
     }
+
 
 
 }

@@ -3,6 +3,9 @@ package es.riberadeltajo.ceca_guillermoimdbapp.models;
 import android.os.Parcel;
 import android.os.Parcelable;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public class Movie implements Parcelable {
 
     private String id;
@@ -253,5 +256,15 @@ public class Movie implements Parcelable {
         public void writeToParcel(Parcel dest, int flags) {
             dest.writeInt(currentRank);
         }
+    }
+
+    public Map<String, Object> toMap() {
+        Map<String, Object> map = new HashMap<>();
+        map.put("id", id);
+        map.put("title", title);
+        map.put("releaseDate", releaseDate);
+        map.put("rating", rating);
+        map.put("posterUrl", posterPath);
+        return map;
     }
 }
