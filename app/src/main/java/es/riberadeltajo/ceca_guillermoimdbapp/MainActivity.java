@@ -1,3 +1,4 @@
+
 package es.riberadeltajo.ceca_guillermoimdbapp;
 
 
@@ -78,7 +79,7 @@ public class MainActivity extends AppCompatActivity {
         if(user != null){
             registrarLastLogin(user);
         }else{
-           redirectToLogin();
+            redirectToLogin();
         }
 
         DrawerLayout drawer = binding.drawerLayout;
@@ -107,7 +108,7 @@ public class MainActivity extends AppCompatActivity {
                     .load(user.getPhotoUrl())
                     .into(imageViewPhoto);
         }else{
-                imageViewPhoto.setImageResource(R.drawable.usuario);
+            imageViewPhoto.setImageResource(R.drawable.usuario);
         }
 
         loadProfileImage();
@@ -373,8 +374,8 @@ public class MainActivity extends AppCompatActivity {
 
 
         //UserSync userSync = new UserSync(this);
-       // userSync.syncToFirestore();
-       // userSync.syncFromFirestore();
+        // userSync.syncToFirestore();
+        // userSync.syncFromFirestore();
 
         FavoritesSync favoritesSync = new FavoritesSync(this);
         favoritesSync.syncToFirestore();
@@ -397,6 +398,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+
     @Override
     protected void onDestroy() {
         super.onDestroy();
@@ -407,6 +409,7 @@ public class MainActivity extends AppCompatActivity {
             dbHelper.updateLastLogout(user.getUid(), fechaLogout);
         }
     }
+
 
 
 }

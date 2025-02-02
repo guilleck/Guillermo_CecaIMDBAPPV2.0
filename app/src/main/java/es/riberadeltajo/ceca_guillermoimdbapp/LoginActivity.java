@@ -403,7 +403,7 @@ public class LoginActivity extends AppCompatActivity {
 
                             registrarUsuarioEnBaseDatos(uid, nombre, emailUser);
 
-                           navegarMainActivity();
+                            navegarMainActivity();
                         }
                     } else {
                         if (task.getException() instanceof FirebaseAuthUserCollisionException) {

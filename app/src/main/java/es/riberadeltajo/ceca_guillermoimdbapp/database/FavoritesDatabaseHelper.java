@@ -12,7 +12,7 @@ import java.security.AccessControlContext;
 public class FavoritesDatabaseHelper extends SQLiteOpenHelper {
 
     private static final String DATABASE_NAME = "favorites.db";
-    private static final int DATABASE_VERSION = 5;
+    private static final int DATABASE_VERSION = 6;
 
     public static final String COLUMN_RATING = "rating";
     public static final String TABLE_FAVORITES = "favorites";
@@ -137,8 +137,12 @@ public class FavoritesDatabaseHelper extends SQLiteOpenHelper {
         ContentValues values = new ContentValues();
         values.put(COLUMN_LAST_LOGOUT, lastLogout);
         int rows = db.update(TABLE_USERS, values, COLUMN_USER_ID + "=?", new String[]{userId});
+        db.close();
     }
 
+
+
+    @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
         if (oldVersion < 4) {
             db.execSQL("ALTER TABLE " + TABLE_USERS + " ADD COLUMN " + COLUMN_ADDRESS + " TEXT");
@@ -147,11 +151,13 @@ public class FavoritesDatabaseHelper extends SQLiteOpenHelper {
         if (oldVersion < 5) {
             db.execSQL("ALTER TABLE " + TABLE_USERS + " ADD COLUMN " + COLUMN_IMAGE + " TEXT");
         }
+
     }
+
     @Override
     public void onConfigure(SQLiteDatabase db) {
         super.onConfigure(db);
-        db.enableWriteAheadLogging(); // Habilita escritura concurrente
+        db.enableWriteAheadLogging();
     }
 
 

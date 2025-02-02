@@ -1,3 +1,4 @@
+
 package es.riberadeltajo.ceca_guillermoimdbapp.utils;
 
 import android.app.Activity;
@@ -95,14 +96,13 @@ public class AppLifecycleManager implements Application.ActivityLifecycleCallbac
 
 
     private void registerUserLogout(FirebaseUser user) {
-
+        if (user == null) return;
         String fechaLogout = new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault()).format(new java.util.Date());
-
-        // Actualizar en la base de datos
         FavoritesDatabaseHelper dbHelper = FavoritesDatabaseHelper.getInstance(context);
         dbHelper.updateLastLogout(user.getUid(), fechaLogout);
-
     }
+
+
 
 
     public void checkForPendingLogout() {

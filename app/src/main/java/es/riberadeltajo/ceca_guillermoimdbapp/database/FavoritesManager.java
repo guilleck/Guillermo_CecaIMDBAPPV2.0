@@ -79,7 +79,7 @@ public class FavoritesManager {
                     new String[]{movie.getId(), userId});
 
             if (rowsDeleted > 0) {
-               FavoritesSync favoritesSync = new FavoritesSync(context);
+                FavoritesSync favoritesSync = new FavoritesSync(context);
                 favoritesSync.removeFavoriteFromFirestore(movie.getId(), userId);
             }
         } finally {
