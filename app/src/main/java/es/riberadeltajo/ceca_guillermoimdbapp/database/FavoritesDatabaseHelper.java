@@ -71,7 +71,7 @@ public class FavoritesDatabaseHelper extends SQLiteOpenHelper {
 
     }
 
-    public void insertOrUpdateUser(String userId, String name, String email, String lastLogin, String lastLogout,
+    public synchronized void insertOrUpdateUser(String userId, String name, String email, String lastLogin, String lastLogout,
                                    String phone, String address, String photoUrl) {
         SQLiteDatabase db = getWritableDatabase();
 

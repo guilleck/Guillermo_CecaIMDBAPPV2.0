@@ -28,7 +28,6 @@ public class UserSync {
         this.auth = FirebaseAuth.getInstance();
     }
 
-
     public synchronized void syncToFirestore() {
         new Thread(() -> {
             SQLiteDatabase db = null;
@@ -57,6 +56,8 @@ public class UserSync {
             }
         }).start();
     }
+
+
 
 
 
@@ -124,7 +125,6 @@ public class UserSync {
                             .set(userData, SetOptions.merge());
                 });
     }
-
 
     public synchronized void syncFromFirestore() {
         FirebaseUser user = auth.getCurrentUser();

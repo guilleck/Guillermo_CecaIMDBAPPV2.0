@@ -89,11 +89,12 @@ public class EditUserFragment extends Fragment {
         auth = FirebaseAuth.getInstance();
         favoritesDatabaseHelper = new FavoritesDatabaseHelper(getContext() != null ? getContext() : requireActivity());
 
-        SharedPreferences sharedPreferences = requireContext().getSharedPreferences("UserProfile", Context.MODE_PRIVATE);
-        String savedName = sharedPreferences.getString("name", "");
-        String savedAddress = sharedPreferences.getString("address", "");
-        String savedPhone = sharedPreferences.getString("phone", "");
-        String savedImageUri = sharedPreferences.getString("profile_image_uri", "");
+        SharedPreferences sharedPreferences = requireContext().getSharedPreferences("UserProfilePrefs", Context.MODE_PRIVATE);
+        String savedName = sharedPreferences.getString("user_name", "");
+        String savedAddress = sharedPreferences.getString("user_address", "");
+        String savedPhone = sharedPreferences.getString("user_phone", "");
+        String savedImageUri = sharedPreferences.getString("user_profile_image", "");
+
 
         editTextName.setText(savedName);
         editTextPhone.setText(savedPhone);
@@ -218,13 +219,12 @@ public class EditUserFragment extends Fragment {
                 return;
             }
 
-            // Guardar datos en SharedPreferences
-            SharedPreferences prefs = requireContext().getSharedPreferences("UserProfile", Context.MODE_PRIVATE);
+            SharedPreferences prefs = requireContext().getSharedPreferences("UserProfileDatos", Context.MODE_PRIVATE);
             SharedPreferences.Editor editor = prefs.edit();
-            editor.putString("name", name);
-            editor.putString("address", address);
-            editor.putString("phone", phone);
-            editor.putString("profile_image_uri", String.valueOf(imageUriString));
+            editor.putString("user_name", name);
+            editor.putString("user_address", address);
+            editor.putString("user_phone", phone);
+            editor.putString("user_profile_image", imageUriString);
             editor.apply();
 
             saveUserProfile();
@@ -364,13 +364,20 @@ public class EditUserFragment extends Fragment {
 
         FirebaseUser user = auth.getCurrentUser();
         if (user != null) {
-            FavoritesDatabaseHelper dbHelper = new FavoritesDatabaseHelper(getContext());
-            dbHelper.insertOrUpdateUser(user.getUid(), name, user.getEmail(), getCurrentTimestamp(), null, phone, address, null);
-            Toast.makeText(getContext(), "Perfil actualizado correctamente", Toast.LENGTH_SHORT).show();
+            new Thread(() -> {  // Ejecutar en un hilo separado para evitar bloqueos en la UI
+                FavoritesDatabaseHelper dbHelper = new FavoritesDatabaseHelper(getContext());
+                synchronized (dbHelper) {  // Asegurar que no haya accesos concurrentes que bloqueen SQLite
+                    dbHelper.insertOrUpdateUser(user.getUid(), name, user.getEmail(), getCurrentTimestamp(), null, phone, address, null);
+                }
+                requireActivity().runOnUiThread(() ->  // Ejecutar en la UI para mostrar Toast
+                        Toast.makeText(getContext(), "Perfil actualizado correctamente", Toast.LENGTH_SHORT).show()
+                );
+            }).start();
         } else {
             Toast.makeText(getContext(), "Usuario no autenticado", Toast.LENGTH_SHORT).show();
         }
     }
+
 
     private boolean isValidPhoneNumber(String fullPhone, String selectedCountryCode) {
         if (TextUtils.isEmpty(fullPhone) || TextUtils.isEmpty(selectedCountryCode)) {

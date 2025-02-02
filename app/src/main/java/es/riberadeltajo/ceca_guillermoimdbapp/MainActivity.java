@@ -84,6 +84,8 @@ public class MainActivity extends AppCompatActivity {
             redirectToLogin();
         }
 
+
+
         DrawerLayout drawer = binding.drawerLayout;
         NavigationView navigationView = binding.navView;
 
@@ -92,6 +94,7 @@ public class MainActivity extends AppCompatActivity {
         textViewEmail = headerView.findViewById(R.id.textViewEmail);
         imageViewPhoto = headerView.findViewById(R.id.imageViewPhoto);
         logoutButton = headerView.findViewById(R.id.buttonLogout);
+
 
 
         String providerId = getProviderId(user);
@@ -205,22 +208,9 @@ public class MainActivity extends AppCompatActivity {
                 cursor.close();
                 db.close();
 
-                // Priorizar los datos de SharedPreferences si existen
-                textViewNombre.setText(savedName != null ? savedName : (name != null ? name : "Usuario"));
-                textViewEmail.setText(user.getEmail());
-
                 String finalImageUri = savedImageUri != null ? savedImageUri : imageUri;
 
-                if (user.getPhotoUrl() != null) {
-                    Glide.with(this)
-                            .load(user.getPhotoUrl()) // URL de la foto del usuario actual
-                            .placeholder(R.drawable.usuario) // Imagen predeterminada mientras se carga
-                            .error(R.drawable.usuario) // Imagen predeterminada si hay un error
-                            .into(imageViewPhoto);
-                } else {
-                    // Si no hay foto de usuario, usa la predeterminada
-                    imageViewPhoto.setImageResource(R.drawable.usuario);
-                }
+
             } else {
                 db.close();
                 Toast.makeText(this, "No se encontraron datos del usuario.", Toast.LENGTH_SHORT).show();
@@ -295,6 +285,7 @@ public class MainActivity extends AppCompatActivity {
             String userId = user.getUid();
             String fechaLogout = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(new Date());
 
+            dbHelper.updateLastLogout(userId,fechaLogout);
 
             // Cerrar el cajón si está abierto
             DrawerLayout drawer = binding.drawerLayout;
@@ -335,10 +326,10 @@ public class MainActivity extends AppCompatActivity {
 
 
 
-        SharedPreferences sharedPreferences = getSharedPreferences("UserProfile", Context.MODE_PRIVATE);
-        String savedName = sharedPreferences.getString("name", null);
-        String savedAddress = sharedPreferences.getString("address", null);
-        String savedPhone = sharedPreferences.getString("phone", null);
+        SharedPreferences sharedPreferences = getSharedPreferences("UserProfileDatos", Context.MODE_PRIVATE);
+        String savedName = sharedPreferences.getString("user_name", null);
+        String savedAddress = sharedPreferences.getString("user_address", null);
+        String savedPhone = sharedPreferences.getString("user_phone", null);
 
         SharedPreferences prefs = getSharedPreferences("Imagen", Context.MODE_PRIVATE);
         String imageUriString = prefs.getString("profile_image_uri", null);
@@ -349,7 +340,6 @@ public class MainActivity extends AppCompatActivity {
 
         dbHelper = new FavoritesDatabaseHelper(this);
 
-        // Insertar o actualizar el usuario en la base de datos
         dbHelper.insertOrUpdateUser(userId, savedName, email, fechaLogin, null, phoneEncriptado, addressEncriptado, imageUriString);
     }
 
