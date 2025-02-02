@@ -71,6 +71,8 @@ dependencies {
     implementation ("androidx.constraintlayout:constraintlayout:2.1.4")
     implementation("com.hbb20:ccp:2.5.1")
     implementation("com.googlecode.libphonenumber:libphonenumber:8.12.50")
+    implementation ("androidx.lifecycle:lifecycle-extensions:2.2.0")
+
 
 
 

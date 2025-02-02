@@ -5,6 +5,7 @@ import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
+import android.util.Log;
 
 import java.security.AccessControlContext;
 
@@ -70,38 +71,35 @@ public class FavoritesDatabaseHelper extends SQLiteOpenHelper {
 
     }
 
-    public void insertOrUpdateUser(String userId, String name, String email, String lastLogin, String lastLogout, String phone, String address, String image) {
+    public void insertOrUpdateUser(String userId, String name, String email, String lastLogin, String lastLogout,
+                                   String phone, String address, String photoUrl) {
         SQLiteDatabase db = getWritableDatabase();
 
-        // Verificar si el usuario ya existe
+        // Comprobamos si el usuario ya existe
         Cursor cursor = db.rawQuery("SELECT " + COLUMN_USER_ID + " FROM " + TABLE_USERS +
                 " WHERE " + COLUMN_USER_ID + " = ?", new String[]{userId});
 
-        boolean exists = (cursor != null && cursor.moveToFirst());
+        boolean existe = (cursor != null && cursor.moveToFirst());
         if (cursor != null) cursor.close();
 
-        // Crear valores para insertar o actualizar
         ContentValues values = new ContentValues();
         values.put(COLUMN_USER_ID, userId);
         values.put(COLUMN_NAME, name);
         values.put(COLUMN_EMAIL, email);
         values.put(COLUMN_LAST_LOGIN, lastLogin);
         values.put(COLUMN_LAST_LOGOUT, lastLogout);
-        values.put("phone", phone); // Nuevo campo
-        values.put("address", address); // Nuevo campo
-        values.put("image", image); // Nuevo campo
+        values.put(COLUMN_PHONE, phone);
+        values.put(COLUMN_ADDRESS, address);
+        values.put(COLUMN_IMAGE, photoUrl);
 
-        if (!exists) {
-            // Insertar si el usuario no existe
+        if (!existe) {
             db.insert(TABLE_USERS, null, values);
         } else {
-            // Actualizar si ya existe
             db.update(TABLE_USERS, values, COLUMN_USER_ID + "=?", new String[]{userId});
         }
 
         db.close();
     }
-
 
 
 
@@ -134,16 +132,12 @@ public class FavoritesDatabaseHelper extends SQLiteOpenHelper {
         db.close();
     }
 
-
-    public void updateLastLogout(String userId, String lastLogout) {
+    public synchronized void updateLastLogout(String userId, String lastLogout) {
         SQLiteDatabase db = getWritableDatabase();
         ContentValues values = new ContentValues();
         values.put(COLUMN_LAST_LOGOUT, lastLogout);
-
-        db.update(TABLE_USERS, values, COLUMN_USER_ID + "=?", new String[]{userId});
-        db.close();
+        int rows = db.update(TABLE_USERS, values, COLUMN_USER_ID + "=?", new String[]{userId});
     }
-
 
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
         if (oldVersion < 4) {
@@ -154,11 +148,11 @@ public class FavoritesDatabaseHelper extends SQLiteOpenHelper {
             db.execSQL("ALTER TABLE " + TABLE_USERS + " ADD COLUMN " + COLUMN_IMAGE + " TEXT");
         }
     }
-
     @Override
     public void onConfigure(SQLiteDatabase db) {
         super.onConfigure(db);
-        db.enableWriteAheadLogging();
+        db.enableWriteAheadLogging(); // Habilita escritura concurrente
     }
+
 
 }
