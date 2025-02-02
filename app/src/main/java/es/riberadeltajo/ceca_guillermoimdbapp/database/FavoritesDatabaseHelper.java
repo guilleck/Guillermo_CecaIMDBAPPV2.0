@@ -134,10 +134,14 @@ public class FavoritesDatabaseHelper extends SQLiteOpenHelper {
 
     public synchronized void updateLastLogout(String userId, String lastLogout) {
         SQLiteDatabase db = getWritableDatabase();
+        try {
         ContentValues values = new ContentValues();
         values.put(COLUMN_LAST_LOGOUT, lastLogout);
         int rows = db.update(TABLE_USERS, values, COLUMN_USER_ID + "=?", new String[]{userId});
         db.close();
+        } finally {
+            db.close();
+        }
     }
 
 

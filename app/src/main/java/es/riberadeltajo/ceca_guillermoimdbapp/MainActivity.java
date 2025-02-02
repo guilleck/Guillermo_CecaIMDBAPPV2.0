@@ -46,6 +46,8 @@ import es.riberadeltajo.ceca_guillermoimdbapp.database.FavoritesDatabaseHelper;
 import es.riberadeltajo.ceca_guillermoimdbapp.databinding.ActivityMainBinding;
 import es.riberadeltajo.ceca_guillermoimdbapp.models.KeyStoreManager;
 import es.riberadeltajo.ceca_guillermoimdbapp.sync.FavoritesSync;
+
+import es.riberadeltajo.ceca_guillermoimdbapp.sync.UserSync;
 import es.riberadeltajo.ceca_guillermoimdbapp.utils.AppLifecycleManager;
 
 public class MainActivity extends AppCompatActivity {
@@ -373,9 +375,8 @@ public class MainActivity extends AppCompatActivity {
         super.onResume();
 
 
-        //UserSync userSync = new UserSync(this);
-        // userSync.syncToFirestore();
-        // userSync.syncFromFirestore();
+        UserSync userSync = new UserSync(this);
+         userSync.syncToFirestore();
 
         FavoritesSync favoritesSync = new FavoritesSync(this);
         favoritesSync.syncToFirestore();
