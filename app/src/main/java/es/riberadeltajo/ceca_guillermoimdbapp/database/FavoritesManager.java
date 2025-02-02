@@ -11,11 +11,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 import es.riberadeltajo.ceca_guillermoimdbapp.models.Movie;
+import es.riberadeltajo.ceca_guillermoimdbapp.sync.FavoritesSync;
 
 public class FavoritesManager {
     private final FavoritesDatabaseHelper databaseHelper;
     private SQLiteDatabase db;
     private final Object databaseLock = new Object();
+    private Context context;
 
     public FavoritesManager(Context context) {
         databaseHelper = new FavoritesDatabaseHelper(context);
@@ -69,10 +71,25 @@ public class FavoritesManager {
     }
 
     public void removeFavorite(Movie movie, String userId) {
-        db.delete(FavoritesDatabaseHelper.TABLE_FAVORITES,
-                FavoritesDatabaseHelper.COLUMN_ID + " = ? AND " + FavoritesDatabaseHelper.COLUMN_USER_ID + " = ?",
-                new String[]{movie.getId(), userId});
+        SQLiteDatabase db = databaseHelper.getWritableDatabase();
+        try {
+            // Eliminar de la base de datos local (SQLite)
+            int rowsDeleted = db.delete(FavoritesDatabaseHelper.TABLE_FAVORITES,
+                    FavoritesDatabaseHelper.COLUMN_ID + " = ? AND " + FavoritesDatabaseHelper.COLUMN_USER_ID + " = ?",
+                    new String[]{movie.getId(), userId});
+
+            if (rowsDeleted > 0) {
+                FavoritesSync favoritesSync = new FavoritesSync(context);
+                favoritesSync.removeFavoriteFromFirestore(movie.getId(), userId);
+            }
+        } finally {
+            if (db != null && db.isOpen()) {
+                db.close();
+            }
+        }
     }
+
+
 
     public boolean isMovieInFavorites(Movie movie, String userId) {
         SQLiteDatabase db = databaseHelper.getReadableDatabase();

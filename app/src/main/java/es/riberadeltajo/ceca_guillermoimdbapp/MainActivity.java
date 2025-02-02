@@ -1,4 +1,6 @@
+
 package es.riberadeltajo.ceca_guillermoimdbapp;
+
 
 import android.content.Context;
 import android.content.Intent;
@@ -11,18 +13,15 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.Menu;
 import android.widget.Button;
-import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import com.facebook.login.LoginManager;
-import com.facebook.share.Share;
 import com.google.android.gms.auth.api.signin.GoogleSignIn;
 import com.google.android.gms.auth.api.signin.GoogleSignInClient;
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
 
 import com.bumptech.glide.Glide;
-import com.google.android.material.snackbar.Snackbar;
 import com.google.android.material.navigation.NavigationView;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
@@ -38,22 +37,18 @@ import androidx.navigation.ui.AppBarConfiguration;
 import androidx.navigation.ui.NavigationUI;
 import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.recyclerview.widget.LinearLayoutManager;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.List;
 import java.util.Locale;
 
 import es.riberadeltajo.ceca_guillermoimdbapp.database.FavoritesDatabaseHelper;
 import es.riberadeltajo.ceca_guillermoimdbapp.databinding.ActivityMainBinding;
 import es.riberadeltajo.ceca_guillermoimdbapp.models.KeyStoreManager;
 import es.riberadeltajo.ceca_guillermoimdbapp.sync.FavoritesSync;
-import es.riberadeltajo.ceca_guillermoimdbapp.ui.slideshow.EditUserFragment;
+
+import es.riberadeltajo.ceca_guillermoimdbapp.sync.UserSync;
 import es.riberadeltajo.ceca_guillermoimdbapp.utils.AppLifecycleManager;
-import retrofit2.Call;
-import retrofit2.Callback;
-import retrofit2.Response;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -64,6 +59,9 @@ public class MainActivity extends AppCompatActivity {
     private com.google.android.material.imageview.ShapeableImageView imageViewPhoto;
     private TextView textViewNombre, textViewEmail;
     private Button logoutButton;
+    private static final String PREF_NAME = "UserPrefs";
+    private static final String PREF_IS_LOGGED_IN = "isLoggedIn";
+    private FavoritesDatabaseHelper dbHelper;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -71,6 +69,7 @@ public class MainActivity extends AppCompatActivity {
         binding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
+        dbHelper = FavoritesDatabaseHelper.getInstance(this);
 
 
         setSupportActionBar(binding.appBarMain.toolbar);
@@ -82,8 +81,10 @@ public class MainActivity extends AppCompatActivity {
         if(user != null){
             registrarLastLogin(user);
         }else{
-           redirectToLogin();
+            redirectToLogin();
         }
+
+
 
         DrawerLayout drawer = binding.drawerLayout;
         NavigationView navigationView = binding.navView;
@@ -93,6 +94,7 @@ public class MainActivity extends AppCompatActivity {
         textViewEmail = headerView.findViewById(R.id.textViewEmail);
         imageViewPhoto = headerView.findViewById(R.id.imageViewPhoto);
         logoutButton = headerView.findViewById(R.id.buttonLogout);
+
 
 
         String providerId = getProviderId(user);
@@ -111,13 +113,20 @@ public class MainActivity extends AppCompatActivity {
                     .load(user.getPhotoUrl())
                     .into(imageViewPhoto);
         }else{
-                imageViewPhoto.setImageResource(R.drawable.usuario);
+            imageViewPhoto.setImageResource(R.drawable.usuario);
         }
 
         loadProfileImage();
 
         logoutButton.setOnClickListener(v -> {
+            FirebaseUser usuario = auth.getCurrentUser();
             signOut();
+            String id = usuario.getUid();
+            String fechaLogout = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(new Date());
+            dbHelper = FavoritesDatabaseHelper.getInstance(this);
+            dbHelper.updateLastLogout(id, fechaLogout);
+            SharedPreferences preferences = getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
+            preferences.edit().putBoolean(PREF_IS_LOGGED_IN, false).apply();
         });
 
         NavController navController = Navigation.findNavController(this, R.id.nav_host_fragment_content_main);
@@ -141,8 +150,6 @@ public class MainActivity extends AppCompatActivity {
             drawer.closeDrawer(GravityCompat.START);
             return true;
         });
-
-
         AppLifecycleManager appLifecycleManager = new AppLifecycleManager(MainActivity.this);
 
         // Registra los métodos del ciclo de vida
@@ -168,10 +175,14 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+
+
+
+
     }
 
     private void loadUserProfile() {
-        FavoritesDatabaseHelper dbHelper = new FavoritesDatabaseHelper(this);
+        dbHelper = new FavoritesDatabaseHelper(this);
         FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
 
         if (user != null) {
@@ -197,22 +208,9 @@ public class MainActivity extends AppCompatActivity {
                 cursor.close();
                 db.close();
 
-                // Priorizar los datos de SharedPreferences si existen
-                textViewNombre.setText(savedName != null ? savedName : (name != null ? name : "Usuario"));
-                textViewEmail.setText(user.getEmail());
-
                 String finalImageUri = savedImageUri != null ? savedImageUri : imageUri;
 
-                if (user.getPhotoUrl() != null) {
-                    Glide.with(this)
-                            .load(user.getPhotoUrl()) // URL de la foto del usuario actual
-                            .placeholder(R.drawable.usuario) // Imagen predeterminada mientras se carga
-                            .error(R.drawable.usuario) // Imagen predeterminada si hay un error
-                            .into(imageViewPhoto);
-                } else {
-                    // Si no hay foto de usuario, usa la predeterminada
-                    imageViewPhoto.setImageResource(R.drawable.usuario);
-                }
+
             } else {
                 db.close();
                 Toast.makeText(this, "No se encontraron datos del usuario.", Toast.LENGTH_SHORT).show();
@@ -286,8 +284,8 @@ public class MainActivity extends AppCompatActivity {
             String providerId = getProviderId(user);
             String userId = user.getUid();
             String fechaLogout = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(new Date());
-            FavoritesDatabaseHelper dbHelper = new FavoritesDatabaseHelper(MainActivity.this);
-            dbHelper.updateLastLogout(userId, fechaLogout);
+
+            dbHelper.updateLastLogout(userId,fechaLogout);
 
             // Cerrar el cajón si está abierto
             DrawerLayout drawer = binding.drawerLayout;
@@ -299,7 +297,7 @@ public class MainActivity extends AppCompatActivity {
             if ("google.com".equals(providerId)) {
                 googleSignInClient.signOut().addOnCompleteListener(this, task -> {
                     Toast.makeText(MainActivity.this, "Sesión cerrada en Google", Toast.LENGTH_SHORT).show();
-                    auth.signOut(); // Cerrar sesión en Firebase
+                    auth.signOut();
                     redirectToLogin();
                 });
             } else if ("facebook.com".equals(providerId)) {
@@ -328,10 +326,10 @@ public class MainActivity extends AppCompatActivity {
 
 
 
-        SharedPreferences sharedPreferences = getSharedPreferences("UserProfile", Context.MODE_PRIVATE);
-        String savedName = sharedPreferences.getString("name", null);
-        String savedAddress = sharedPreferences.getString("address", null);
-        String savedPhone = sharedPreferences.getString("phone", null);
+        SharedPreferences sharedPreferences = getSharedPreferences("UserProfileDatos", Context.MODE_PRIVATE);
+        String savedName = sharedPreferences.getString("user_name", null);
+        String savedAddress = sharedPreferences.getString("user_address", null);
+        String savedPhone = sharedPreferences.getString("user_phone", null);
 
         SharedPreferences prefs = getSharedPreferences("Imagen", Context.MODE_PRIVATE);
         String imageUriString = prefs.getString("profile_image_uri", null);
@@ -340,9 +338,8 @@ public class MainActivity extends AppCompatActivity {
         String addressEncriptado = savedAddress != null ? keyStoreManager.encrypt(savedAddress) : null;
         String phoneEncriptado = savedPhone != null ? keyStoreManager.encrypt(savedPhone) : null;
 
-        FavoritesDatabaseHelper dbHelper = new FavoritesDatabaseHelper(this);
+        dbHelper = new FavoritesDatabaseHelper(this);
 
-        // Insertar o actualizar el usuario en la base de datos
         dbHelper.insertOrUpdateUser(userId, savedName, email, fechaLogin, null, phoneEncriptado, addressEncriptado, imageUriString);
     }
 
@@ -357,7 +354,7 @@ public class MainActivity extends AppCompatActivity {
     private void clearUserPreferences() {
         SharedPreferences sharedPreferences = getSharedPreferences("UserProfile", Context.MODE_PRIVATE);
         SharedPreferences.Editor editor = sharedPreferences.edit();
-        editor.clear(); // Borra todos los datos guardados
+        editor.clear();
         editor.apply();
     }
 
@@ -367,13 +364,41 @@ public class MainActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
 
+
+        UserSync userSync = new UserSync(this);
+         userSync.syncToFirestore();
+
         FavoritesSync favoritesSync = new FavoritesSync(this);
         favoritesSync.syncToFirestore();
         favoritesSync.syncFromFirestore();
 
+
         clearUserPreferences();
         loadUserProfile();
         loadProfileImage();
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+        if (user != null) {
+            FavoritesDatabaseHelper dbHelper = FavoritesDatabaseHelper.getInstance(this);
+            String fechaLogout = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(new Date());
+            dbHelper.updateLastLogout(user.getUid(), fechaLogout);
+        }
+    }
+
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+        if (user != null) {
+            FavoritesDatabaseHelper dbHelper = FavoritesDatabaseHelper.getInstance(this);
+            String fechaLogout = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(new Date());
+            dbHelper.updateLastLogout(user.getUid(), fechaLogout);
+        }
     }
 
 

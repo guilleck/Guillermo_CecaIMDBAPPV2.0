@@ -77,9 +77,18 @@ public class FavoritesSync {
                 .collection("movies")
                 .get()
                 .addOnSuccessListener(queryDocumentSnapshots -> new Thread(() -> {
-                    SQLiteDatabase db = databaseHelper.getWritableDatabase();
-                    db.beginTransaction();
+                    SQLiteDatabase db = null;
                     try {
+                        db = databaseHelper.getWritableDatabase();
+
+                        // Verifica si la base de datos se inicializó correctamente
+                        if (db == null) {
+                            Log.e("FavoritesSync", "Error: databaseHelper.getWritableDatabase() devolvió null.");
+                            return;
+                        }
+
+                        db.beginTransaction();
+
                         for (com.google.firebase.firestore.QueryDocumentSnapshot doc : queryDocumentSnapshots) {
                             String movieId = doc.getString("id");
                             String title = doc.getString("title");
@@ -92,14 +101,24 @@ public class FavoritesSync {
                                 favoritesManager.addFavorite(movie, userId);
                             }
                         }
+
                         db.setTransactionSuccessful();
+                    } catch (Exception e) {
+                        Log.e("FavoritesSync", "Error durante la sincronización desde Firestore", e);
                     } finally {
-                        db.endTransaction();
-                        db.close();
+                        if (db != null && db.isOpen()) {
+                            try {
+                                db.endTransaction();
+                                db.close();
+                            } catch (Exception closeException) {
+                                Log.e("FavoritesSync", "Error al cerrar la base de datos", closeException);
+                            }
+                        }
                     }
                 }).start())
                 .addOnFailureListener(e -> Log.e("FavoritesSync", "Error al sincronizar desde Firestore", e));
     }
+
 
     private void addFavoriteToFirestore(String movieId, String title, String releaseDate, String rating, String posterPath, String userId) {
         Map<String, Object> movieData = new HashMap<>();
@@ -118,4 +137,18 @@ public class FavoritesSync {
                 .addOnSuccessListener(aVoid -> Log.d("FavoritesSync", "Película añadida: " + title))
                 .addOnFailureListener(e -> Log.e("FavoritesSync", "Error al añadir película: " + title, e));
     }
+
+    public void removeFavoriteFromFirestore(String movieId, String userId) {
+        FirebaseUser user = auth.getCurrentUser();
+        if (user == null) {
+            return;
+        }
+
+        firestore.collection("favorites")
+                .document(userId)
+                .collection("movies")
+                .document(movieId)
+                .delete();
+    }
+
 }
