@@ -9,6 +9,7 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.net.Uri;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.Menu;
@@ -71,7 +72,6 @@ public class MainActivity extends AppCompatActivity {
 
         dbHelper = FavoritesDatabaseHelper.getInstance(this);
 
-
         setSupportActionBar(binding.appBarMain.toolbar);
 
         auth = FirebaseAuth.getInstance();
@@ -84,8 +84,6 @@ public class MainActivity extends AppCompatActivity {
             redirectToLogin();
         }
 
-
-
         DrawerLayout drawer = binding.drawerLayout;
         NavigationView navigationView = binding.navView;
 
@@ -94,7 +92,6 @@ public class MainActivity extends AppCompatActivity {
         textViewEmail = headerView.findViewById(R.id.textViewEmail);
         imageViewPhoto = headerView.findViewById(R.id.imageViewPhoto);
         logoutButton = headerView.findViewById(R.id.buttonLogout);
-
 
 
         String providerId = getProviderId(user);
@@ -150,9 +147,8 @@ public class MainActivity extends AppCompatActivity {
             drawer.closeDrawer(GravityCompat.START);
             return true;
         });
-        AppLifecycleManager appLifecycleManager = new AppLifecycleManager(MainActivity.this);
+        AppLifecycleManager appLifecycleManager = new AppLifecycleManager(this);
 
-        // Registra los métodos del ciclo de vida
         getLifecycle().addObserver(new DefaultLifecycleObserver() {
             @Override
             public void onStart(@NonNull LifecycleOwner owner) {
@@ -174,9 +170,6 @@ public class MainActivity extends AppCompatActivity {
                 appLifecycleManager.onActivityPaused(MainActivity.this);
             }
         });
-
-
-
 
 
     }
@@ -287,13 +280,11 @@ public class MainActivity extends AppCompatActivity {
 
             dbHelper.updateLastLogout(userId,fechaLogout);
 
-            // Cerrar el cajón si está abierto
             DrawerLayout drawer = binding.drawerLayout;
             if (drawer.isDrawerOpen(GravityCompat.START)) {
                 drawer.closeDrawer(GravityCompat.START);
             }
 
-            // Manejo del cierre de sesión según el proveedor
             if ("google.com".equals(providerId)) {
                 googleSignInClient.signOut().addOnCompleteListener(this, task -> {
                     Toast.makeText(MainActivity.this, "Sesión cerrada en Google", Toast.LENGTH_SHORT).show();
@@ -302,11 +293,10 @@ public class MainActivity extends AppCompatActivity {
                 });
             } else if ("facebook.com".equals(providerId)) {
                 LoginManager.getInstance().logOut();
-                auth.signOut(); // Cerrar sesión en Firebase
+                auth.signOut();
                 Toast.makeText(MainActivity.this, "Sesión cerrada en Facebook", Toast.LENGTH_SHORT).show();
                 redirectToLogin();
             } else {
-                // Cerrar sesión para otros proveedores o anónimos
                 auth.signOut();
                 Toast.makeText(MainActivity.this, "Sesión cerrada", Toast.LENGTH_SHORT).show();
                 redirectToLogin();
@@ -365,8 +355,6 @@ public class MainActivity extends AppCompatActivity {
         super.onResume();
 
 
-        UserSync userSync = new UserSync(this);
-         userSync.syncToFirestore();
 
         FavoritesSync favoritesSync = new FavoritesSync(this);
         favoritesSync.syncToFirestore();
@@ -386,6 +374,8 @@ public class MainActivity extends AppCompatActivity {
             FavoritesDatabaseHelper dbHelper = FavoritesDatabaseHelper.getInstance(this);
             String fechaLogout = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(new Date());
             dbHelper.updateLastLogout(user.getUid(), fechaLogout);
+
+            new UserSync(this).syncToFirestoreWithWorker(this);
         }
     }
 
@@ -398,6 +388,9 @@ public class MainActivity extends AppCompatActivity {
             FavoritesDatabaseHelper dbHelper = FavoritesDatabaseHelper.getInstance(this);
             String fechaLogout = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(new Date());
             dbHelper.updateLastLogout(user.getUid(), fechaLogout);
+
+            new UserSync(this).syncToFirestoreWithWorker(this);
+
         }
     }
 

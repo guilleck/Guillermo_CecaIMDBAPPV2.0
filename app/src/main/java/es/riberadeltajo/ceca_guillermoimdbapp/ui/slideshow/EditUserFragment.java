@@ -76,7 +76,6 @@ public class EditUserFragment extends Fragment {
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_edit_user, container, false);
 
-        // Inicializar vistas
         editTextName = view.findViewById(R.id.editTextName);
         editTextEmail = view.findViewById(R.id.editTextEmail);
         editTextAddress = view.findViewById(R.id.editTextAddress);
@@ -114,7 +113,7 @@ public class EditUserFragment extends Fragment {
                     if (result.getResultCode() == requireActivity().RESULT_OK && result.getData() != null) {
                         String selectedAddress = result.getData().getStringExtra("SELECTED_ADDRESS");
                         if (selectedAddress != null) {
-                            editTextAddress.setText(selectedAddress); // Mostrar la dirección en el EditText
+                            editTextAddress.setText(selectedAddress);
                         }
                     }
                 }
@@ -147,9 +146,6 @@ public class EditUserFragment extends Fragment {
                 }
         );
 
-
-
-
         buttonSelectAddress.setOnClickListener(v -> {
             if (ActivityCompat.checkSelfPermission(requireContext(), Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
                 requestPermissions(new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, 201);
@@ -167,12 +163,12 @@ public class EditUserFragment extends Fragment {
                     .setTitle("Seleccionar imagen")
                     .setItems(options, (dialog, which) -> {
                         switch (which) {
-                            case 0: // Tomar foto con la cámara
+                            case 0:
                                 if (ActivityCompat.checkSelfPermission(requireContext(), Manifest.permission.CAMERA)
                                         != PackageManager.PERMISSION_GRANTED) {
                                     requestCameraPermission.launch(Manifest.permission.CAMERA);
                                 } else {
-                                    abrirCamara(); // Iniciar cámara con requestCode
+                                    abrirCamara();
                                 }
                                 break;
 
@@ -181,16 +177,13 @@ public class EditUserFragment extends Fragment {
                                 startActivityForResult(galleryIntent, 101);
                                 break;
 
-                            case 2: // Usar URL externa
-                                mostrarDialogoUrl(); // Mostrar un diálogo para introducir URL
+                            case 2:
+                                mostrarDialogoUrl();
                                 break;
                         }
                     })
                     .show();
         });
-
-
-
 
 
         CountryCodePicker ccp = view.findViewById(R.id.countryCodePicker);
@@ -231,7 +224,6 @@ public class EditUserFragment extends Fragment {
 
             Toast.makeText(requireContext(), "Perfil actualizado correctamente", Toast.LENGTH_SHORT).show();
 
-            // Volver a MainActivity
             Intent intent = new Intent(requireContext(), MainActivity.class);
             startActivity(intent);
         });
@@ -252,7 +244,7 @@ public class EditUserFragment extends Fragment {
 
     private void abrirCamara() {
         Intent cameraIntent = new Intent(android.provider.MediaStore.ACTION_IMAGE_CAPTURE);
-        startActivityForResult(cameraIntent, 102); // Request code para cámara
+        startActivityForResult(cameraIntent, 102);
     }
 
 
@@ -286,7 +278,7 @@ public class EditUserFragment extends Fragment {
                     if (!url.isEmpty()) {
                         Uri imageUri = Uri.parse(url);
                         Glide.with(this).load(imageUri).into(imageViewProfile);
-                        saveProfileImageUri(imageUri); // Guardar la URI
+                        saveProfileImageUri(imageUri);
                     }
                 })
                 .setNegativeButton("Cancelar", null)
@@ -303,7 +295,7 @@ public class EditUserFragment extends Fragment {
             if (requestCode == 101) { // Galería
                 Uri selectedImageUri = data.getData();
                 Glide.with(this).load(selectedImageUri).into(imageViewProfile);
-                saveProfileImageUri(selectedImageUri); // Guardar la URI
+                saveProfileImageUri(selectedImageUri);
             } else if (requestCode == 102) { // Cámara
                 Bundle extras = data.getExtras();
                 Bitmap photo = (Bitmap) extras.get("data");
@@ -311,7 +303,7 @@ public class EditUserFragment extends Fragment {
                 if (photo != null) {
                     Uri photoUri = saveBitmapToFile(photo);
                     Glide.with(this).load(photoUri).into(imageViewProfile);
-                    saveProfileImageUri(photoUri); // Guardar la URI
+                    saveProfileImageUri(photoUri);
                 }
             }
         }
@@ -364,12 +356,12 @@ public class EditUserFragment extends Fragment {
 
         FirebaseUser user = auth.getCurrentUser();
         if (user != null) {
-            new Thread(() -> {  // Ejecutar en un hilo separado para evitar bloqueos en la UI
+            new Thread(() -> {
                 FavoritesDatabaseHelper dbHelper = new FavoritesDatabaseHelper(getContext());
-                synchronized (dbHelper) {  // Asegurar que no haya accesos concurrentes que bloqueen SQLite
+                synchronized (dbHelper) {
                     dbHelper.insertOrUpdateUser(user.getUid(), name, user.getEmail(), getCurrentTimestamp(), null, phone, address, null);
                 }
-                requireActivity().runOnUiThread(() ->  // Ejecutar en la UI para mostrar Toast
+                requireActivity().runOnUiThread(() ->
                         Toast.makeText(getContext(), "Perfil actualizado correctamente", Toast.LENGTH_SHORT).show()
                 );
             }).start();

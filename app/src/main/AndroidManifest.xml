@@ -22,15 +22,15 @@
         tools:ignore="CoarseFineLocation" />
 
     <application
+        android:name=".utils.AppLifecycleManager"
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.Ceca_GuillermoIMDbAPP.NoActionBar">
-        <activity
-            android:name=".LLamada"
-            android:exported="false" />
+        android:theme="@style/Theme.Ceca_GuillermoIMDbAPP.NoActionBar"
+        tools:ignore="Instantiatable">
+
         <activity
             android:name=".Llamada"
             android:exported="false" />

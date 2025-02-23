@@ -114,14 +114,12 @@ public class SearchFragment extends Fragment {
 
                 } else {
                     Toast.makeText(getContext(), "Error al obtener los géneros", Toast.LENGTH_SHORT).show();
-                    Log.e("SearchFragment", "Respuesta no exitosa: " + response.code());
                 }
             }
 
             @Override
             public void onFailure(Call<GeneroResponse> call, Throwable t) {
                 Toast.makeText(getContext(), "Error al conectar con la API", Toast.LENGTH_SHORT).show();
-                Log.e("SearchFragment", "Error en la llamada API: " + t.getMessage());
             }
         });
     }

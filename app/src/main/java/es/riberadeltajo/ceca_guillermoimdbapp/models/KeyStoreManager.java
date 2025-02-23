@@ -29,12 +29,10 @@ public class KeyStoreManager {
             KeyStore keyStore = KeyStore.getInstance(ANDROID_KEYSTORE);
             keyStore.load(null);
 
-            // Verificar si la clave ya existe
             if (!keyStore.containsAlias(KEY_ALIAS)) {
                 generateKey();
             }
 
-            // Obtener la clave del almacén de claves
             KeyStore.SecretKeyEntry secretKeyEntry = (KeyStore.SecretKeyEntry) keyStore.getEntry(KEY_ALIAS, null);
             if (secretKeyEntry != null) {
                 secretKey = secretKeyEntry.getSecretKey();
@@ -65,7 +63,6 @@ public class KeyStoreManager {
             keyGenerator.generateKey();
             Log.d(TAG, "Clave AES generada y almacenada en Keystore.");
 
-            // Volver a obtener la clave generada
             KeyStore keyStore = KeyStore.getInstance(ANDROID_KEYSTORE);
             keyStore.load(null);
             KeyStore.SecretKeyEntry secretKeyEntry = (KeyStore.SecretKeyEntry) keyStore.getEntry(KEY_ALIAS, null);
@@ -80,40 +77,28 @@ public class KeyStoreManager {
 
     public String encrypt(String plainText) {
         try {
-            if (secretKey == null) {
-                Log.e(TAG, "Error: SecretKey es null al intentar encriptar.");
-                return null;
-            }
 
             Cipher cipher = Cipher.getInstance(TRANSFORMATION);
             cipher.init(Cipher.ENCRYPT_MODE, secretKey);
             byte[] iv = cipher.getIV();
             byte[] cipherText = cipher.doFinal(plainText.getBytes("UTF-8"));
 
-            // Concatenar IV y cipherText
             ByteBuffer byteBuffer = ByteBuffer.allocate(iv.length + cipherText.length);
             byteBuffer.put(iv);
             byteBuffer.put(cipherText);
             byte[] cipherMessage = byteBuffer.array();
 
-            // Codificar en Base64
             return Base64.encodeToString(cipherMessage, Base64.DEFAULT);
         } catch (Exception e) {
-            Log.e(TAG, "Error encriptando datos", e);
+            e.printStackTrace();
             return null;
         }
     }
 
     public String decrypt(String cipherText) {
         try {
-            if (secretKey == null) {
-                Log.e(TAG, "Error: SecretKey es null al intentar desencriptar.");
-                return null;
-            }
-
             byte[] cipherMessage = Base64.decode(cipherText, Base64.DEFAULT);
 
-            // Extraer IV y cipherText
             ByteBuffer byteBuffer = ByteBuffer.wrap(cipherMessage);
             byte[] iv = new byte[IV_SIZE];
             byteBuffer.get(iv);
@@ -127,7 +112,7 @@ public class KeyStoreManager {
 
             return new String(decryptedBytes, "UTF-8");
         } catch (Exception e) {
-            Log.e(TAG, "Error desencriptando datos", e);
+            e.printStackTrace();
             return null;
         }
     }

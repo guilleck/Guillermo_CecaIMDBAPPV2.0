@@ -28,7 +28,6 @@ public class RapidApiKeyManager {
             throw new IllegalStateException("No hay claves API disponibles para cambiar.");
         }
         currentKeyIndex = (currentKeyIndex + 1) % apiKeys.size();
-        System.out.println("Clave API cambiada a: " + getCurrentKey()); // Log para depuración
     }
 
     public void addApiKey(String newKey) {

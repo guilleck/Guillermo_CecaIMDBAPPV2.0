@@ -28,7 +28,6 @@ public class IMDBApiClient {
                     .readTimeout(30, TimeUnit.SECONDS)
                     .build();
 
-            // Configuración del cliente Retrofit
             Retrofit retrofit = new Retrofit.Builder()
                     .baseUrl(BASE_URL)
                     .client(client)
