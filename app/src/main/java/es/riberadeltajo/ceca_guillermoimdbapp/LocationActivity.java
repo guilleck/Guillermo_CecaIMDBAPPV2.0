@@ -48,14 +48,12 @@ public class LocationActivity extends AppCompatActivity implements OnMapReadyCal
             Places.initialize(getApplicationContext(), getString(R.string.google_maps_key));
         }
 
-        // Ajustar insets
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
             return insets;
         });
 
-        // Configurar AutocompleteSupportFragment
         AutocompleteSupportFragment autocompleteFragment = (AutocompleteSupportFragment)
                 getSupportFragmentManager().findFragmentById(R.id.autocomplete_fragment);
 
@@ -64,7 +62,6 @@ public class LocationActivity extends AppCompatActivity implements OnMapReadyCal
         autocompleteFragment.setOnPlaceSelectedListener(new PlaceSelectionListener() {
             @Override
             public void onPlaceSelected(@NonNull Place place) {
-                // Obtener la ubicación seleccionada
                 selectedAddress = place.getAddress();
                 LatLng latLng = place.getLatLng();
 
@@ -108,11 +105,9 @@ public class LocationActivity extends AppCompatActivity implements OnMapReadyCal
         LatLng spain = new LatLng(40.416775, -3.703790);
         mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(spain, 5f));
 
-        // Listener para clics en el mapa
         mMap.setOnMapClickListener(latLng -> {
             selectedLatLng = latLng;
 
-            // Obtener dirección a partir de las coordenadas
             selectedAddress = getAddressFromLatLng(latLng.latitude, latLng.longitude);
             if (selectedAddress != null) {
                 mMap.clear();
@@ -124,9 +119,6 @@ public class LocationActivity extends AppCompatActivity implements OnMapReadyCal
         });
     }
 
-    /**
-     * Obtener una dirección legible a partir de lat/lng con Geocoder
-     */
     private String getAddressFromLatLng(double lat, double lng) {
         Geocoder geocoder = new Geocoder(this, Locale.getDefault());
         try {
@@ -134,7 +126,6 @@ public class LocationActivity extends AppCompatActivity implements OnMapReadyCal
             if (results != null && !results.isEmpty()) {
                 Address address = results.get(0);
 
-                // Formatear la dirección
                 StringBuilder sb = new StringBuilder();
                 if (address.getThoroughfare() != null) sb.append(address.getThoroughfare()).append(", ");
                 if (address.getLocality() != null) sb.append(address.getLocality()).append(", ");

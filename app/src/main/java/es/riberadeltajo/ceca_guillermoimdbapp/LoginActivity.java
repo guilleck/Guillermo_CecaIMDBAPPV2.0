@@ -140,7 +140,6 @@ public class LoginActivity extends AppCompatActivity {
         FacebookSdk.setClientToken(getString(R.string.facebook_client_token));
         FacebookSdk.sdkInitialize(getApplicationContext());
 
-        // Inicializar Firebase
         FirebaseApp.initializeApp(this);
 
         auth = FirebaseAuth.getInstance();
@@ -270,7 +269,6 @@ public class LoginActivity extends AppCompatActivity {
             return;
         }
 
-        // Configuración de Retrofit para la API de Facebook
         OkHttpClient client = new OkHttpClient.Builder()
                 .addInterceptor(chain -> {
                     Request originalRequest = chain.request();
@@ -284,7 +282,7 @@ public class LoginActivity extends AppCompatActivity {
                 .build();
 
         Retrofit retrofit = new Retrofit.Builder()
-                .baseUrl("https://graph.facebook.com/v12.0/") // Asegúrate de usar la versión correcta de la API
+                .baseUrl("https://graph.facebook.com/v12.0/")
                 .client(client)
                 .addConverterFactory(GsonConverterFactory.create())
                 .build();
@@ -317,7 +315,6 @@ public class LoginActivity extends AppCompatActivity {
 
         FavoritesDatabaseHelper dbHelper = new FavoritesDatabaseHelper(this);
 
-        // Verificar si el usuario ya existe en la base de datos
         SQLiteDatabase db = dbHelper.getReadableDatabase();
         Cursor cursor = db.rawQuery("SELECT " + FavoritesDatabaseHelper.COLUMN_PHONE + ", " +
                 FavoritesDatabaseHelper.COLUMN_ADDRESS + ", " + FavoritesDatabaseHelper.COLUMN_IMAGE +
@@ -338,7 +335,6 @@ public class LoginActivity extends AppCompatActivity {
         db.close();
 
         if (phone == null && address == null && existingPhotoUrl == null) {
-            // No existe, insertar con campos proporcionados y los nuevos campos
             dbHelper.insertOrUpdateUser(
                     userId,
                     name,
@@ -357,7 +353,6 @@ public class LoginActivity extends AppCompatActivity {
             }
         }
 
-        // Actualizar las preferencias
         SharedPreferences preferences = getSharedPreferences("UserPrefs", Context.MODE_PRIVATE);
         SharedPreferences.Editor editor = preferences.edit();
         editor.putBoolean("isLoggedIn", true);
@@ -407,7 +402,6 @@ public class LoginActivity extends AppCompatActivity {
                         }
                     } else {
                         if (task.getException() instanceof FirebaseAuthUserCollisionException) {
-                            // El correo ya está registrado
                             FirebaseAuthUserCollisionException exception = (FirebaseAuthUserCollisionException) task.getException();
                             String existingEmail = email;
 
@@ -425,16 +419,13 @@ public class LoginActivity extends AppCompatActivity {
                                                     Toast.makeText(LoginActivity.this, "Ese correo ya está registrado. Intenta iniciar sesión.", Toast.LENGTH_LONG).show();
                                                 }
                                             } else {
-                                                // Error al obtener los métodos de inicio de sesión
                                                 Toast.makeText(LoginActivity.this, "Error al verificar el correo.", Toast.LENGTH_SHORT).show();
                                             }
                                         });
                             } else {
-                                // existingEmail es null o vacío, no se puede verificar los métodos de inicio de sesión
                                 Toast.makeText(LoginActivity.this, "Ese correo ya está registrado. Intenta iniciar sesión.", Toast.LENGTH_LONG).show();
                             }
                         } else {
-                            // Otros errores
                             Toast.makeText(LoginActivity.this, "Error al registrar: " + task.getException().getMessage(), Toast.LENGTH_LONG).show();
                         }
                     }

@@ -6,7 +6,7 @@
 
     <fragment
         android:id="@+id/nav_home"
-        android:name="es.riberadeltajo.ceca_guillermoimdbapp.ui.home.HomeFragment"
+        android:name="es.riberadeltajo.ceca_guillermoimdbapp.ui.home.Top10Fragment"
         android:label="Home"
         tools:layout="@layout/fragment_home"/>
 

@@ -34,10 +34,7 @@ public class FavoritesSync {
     public void syncToFirestore() {
         new Thread(() -> {
             FirebaseUser user = auth.getCurrentUser();
-            if (user == null) {
-                Log.e("FavoritesSync", "No hay usuario autenticado. Sincronización abortada.");
-                return;
-            }
+
             String userId = user.getUid();
             SQLiteDatabase db = databaseHelper.getReadableDatabase();
             Cursor cursor = null;
@@ -54,7 +51,7 @@ public class FavoritesSync {
                     addFavoriteToFirestore(movieId, title, releaseDate, rating, posterPath, userId);
                 }
             } catch (Exception e) {
-                Log.e("FavoritesSync", "Error al sincronizar datos locales a Firestore", e);
+                e.printStackTrace();
             } finally {
                 if (cursor != null) {
                     cursor.close();
@@ -66,10 +63,6 @@ public class FavoritesSync {
 
     public void syncFromFirestore() {
         FirebaseUser user = auth.getCurrentUser();
-        if (user == null) {
-            Log.e("FavoritesSync", "No hay usuario autenticado. No se puede sincronizar.");
-            return;
-        }
 
         String userId = user.getUid();
         firestore.collection("favorites")
@@ -80,12 +73,6 @@ public class FavoritesSync {
                     SQLiteDatabase db = null;
                     try {
                         db = databaseHelper.getWritableDatabase();
-
-                        // Verifica si la base de datos se inicializó correctamente
-                        if (db == null) {
-                            Log.e("FavoritesSync", "Error: databaseHelper.getWritableDatabase() devolvió null.");
-                            return;
-                        }
 
                         db.beginTransaction();
 
@@ -104,19 +91,18 @@ public class FavoritesSync {
 
                         db.setTransactionSuccessful();
                     } catch (Exception e) {
-                        Log.e("FavoritesSync", "Error durante la sincronización desde Firestore", e);
+                       e.printStackTrace();
                     } finally {
                         if (db != null && db.isOpen()) {
                             try {
                                 db.endTransaction();
                                 db.close();
                             } catch (Exception closeException) {
-                                Log.e("FavoritesSync", "Error al cerrar la base de datos", closeException);
+                               closeException.printStackTrace();
                             }
                         }
                     }
-                }).start())
-                .addOnFailureListener(e -> Log.e("FavoritesSync", "Error al sincronizar desde Firestore", e));
+                }).start());
     }
 
 

@@ -38,7 +38,7 @@ public class FavoritesManager {
             values.put(FavoritesDatabaseHelper.COLUMN_RELEASE_DATE, movie.getReleaseDate());
             values.put(FavoritesDatabaseHelper.COLUMN_RATING, movie.getRating());
             values.put(FavoritesDatabaseHelper.COLUMN_POSTER_PATH, movie.getPosterPath());
-            values.put(FavoritesDatabaseHelper.COLUMN_USER_ID, userId);  // Asociar la película al usuario
+            values.put(FavoritesDatabaseHelper.COLUMN_USER_ID, userId);
 
             db.insert(FavoritesDatabaseHelper.TABLE_FAVORITES, null, values);
             db.close();

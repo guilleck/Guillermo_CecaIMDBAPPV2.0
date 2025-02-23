@@ -7,6 +7,8 @@ import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.util.Log;
 
+import com.google.firebase.firestore.auth.User;
+
 import java.security.AccessControlContext;
 
 public class FavoritesDatabaseHelper extends SQLiteOpenHelper {
@@ -164,5 +166,6 @@ public class FavoritesDatabaseHelper extends SQLiteOpenHelper {
         db.enableWriteAheadLogging();
     }
 
+   
 
 }

@@ -6,7 +6,6 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -18,10 +17,8 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 import es.riberadeltajo.ceca_guillermoimdbapp.adapters.MovieAdapter;
 import es.riberadeltajo.ceca_guillermoimdbapp.api.IMDBApiClient;
@@ -31,15 +28,11 @@ import es.riberadeltajo.ceca_guillermoimdbapp.database.FavoritesManager;
 import es.riberadeltajo.ceca_guillermoimdbapp.databinding.FragmentHomeBinding;
 import es.riberadeltajo.ceca_guillermoimdbapp.models.Movie;
 import es.riberadeltajo.ceca_guillermoimdbapp.models.PopularMoviesResponse;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
-import retrofit2.Retrofit;
-import retrofit2.converter.gson.GsonConverterFactory;
 
-public class HomeFragment extends Fragment {
+public class Top10Fragment extends Fragment {
 
     private FragmentHomeBinding binding;
     private IMDBApiService ApiService;
